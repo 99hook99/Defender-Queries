@@ -11,11 +11,32 @@ A curated, auto-synced collection of KQL queries for Microsoft Defender and othe
 | External queries (source files) | 723 |
 | Custom queries | 1 |
 | Sources | 4 |
-| Last sync | 2026-04-07 11:11:05 UTC |
+| Last sync | 2026-04-07 11:41:05 UTC |
 
 ## Recently Added
 
 See **[RECENT.md](RECENT.md)** for the latest 25 additions.
+
+---
+
+## Topics
+
+Queries are organised by topic, regardless of source. Each topic folder contains subfolders per source (`bert-janp`, `slimkql`, etc.).
+
+| Folder | Topic | Files |
+|--------|-------|-------|
+| `identity` | Identity & Authentication | 142 |
+| `endpoint` | Endpoint & Device Security | 161 |
+| `email` | Email & Office 365 | 36 |
+| `cloud` | Cloud Infrastructure (Azure) | 23 |
+| `vulnerabilities` | Vulnerabilities & Patch Management | 97 |
+| `cloud-apps` | Cloud Apps & SaaS | 19 |
+| `threat-hunting` | Threat Hunting | 59 |
+| `detection` | Detection Rules | 50 |
+| `dfir` | DFIR & Incident Response | 13 |
+| `secops` | Security Operations | 17 |
+| `xdr` | Defender XDR | 89 |
+| `various` | Various & Learning | 17 |
 
 ---
 
@@ -29,6 +50,7 @@ See **[RECENT.md](RECENT.md)** for the latest 25 additions.
 | **community** | [KQL Cafe – KustoCon](https://github.com/KQLCafe/kustocon) | Sentinel, MDE | `kql` | 8 | KQL Cafe conference queries and demos |
 
 > To add a new source: edit [`sources.yaml`](sources.yaml) and run `python scripts/sync.py`.
+> To adjust topic classification: edit [`taxonomy.yaml`](taxonomy.yaml).
 
 ---
 
@@ -36,12 +58,24 @@ See **[RECENT.md](RECENT.md)** for the latest 25 additions.
 
 ```
 queries/
-├── external/          # Auto-synced from sources.yaml
-│   ├── bert-janp/     #   mirrors source repo folder structure
-│   └── kqlcafe/
-└── custom/            # Your own queries (add .kql files here)
+├── external/                   # Auto-synced, organised by topic
+│   ├── identity/               # Identity & Authentication
+│   │   ├── bert-janp/
+│   │   └── slimkql/
+│   ├── endpoint/               # Endpoint & Device Security
+│   ├── vulnerabilities/        # CVEs & Patch Management
+│   ├── email/                  # Email & Office 365
+│   ├── cloud/                  # Azure Cloud Infrastructure
+│   ├── detection/              # Detection Rules
+│   ├── threat-hunting/         # Threat Hunting
+│   ├── dfir/                   # DFIR & Incident Response
+│   ├── secops/                 # Security Operations
+│   ├── cloud-apps/             # Cloud Apps & SaaS
+│   ├── xdr/                    # Defender XDR
+│   └── various/                # Learning, utilities
+└── custom/                     # Your own queries
     ├── template.kql
-    └── template.yaml  # optional metadata sidecar
+    └── template.yaml
 ```
 
 ---
@@ -60,12 +94,13 @@ Edit `sources.yaml`:
 
 ```yaml
 sources:
-  community:          # group name (free choice)
+  community:
     - name: "My Source"
       repo: "owner/repo"
-      slug: "my-source"          # local folder name under queries/external/
+      slug: "my-source"
       platform: [MDE, Sentinel]
       file_type: kql             # kql (default) or markdown
+      code_fence: kql            # kql (default) or any (for plain ``` blocks)
       description: "..."
 ```
 

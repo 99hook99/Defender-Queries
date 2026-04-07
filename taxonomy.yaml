@@ -1,0 +1,195 @@
+# KQL Query Taxonomy
+# ------------------
+# Defines how queries are classified into topics.
+#
+# Classification order (first match wins):
+#   1. folder_contains  — any path component of the source file contains this string (case-insensitive)
+#   2. filename_contains — the filename contains this keyword (case-insensitive)
+#
+# Default topic for unmatched files: "various"
+
+topics:
+
+  identity:
+    label: "Identity & Authentication"
+    folder_contains:
+      - "Azure Active Directory"
+      - "Defender For Identity"
+      - "Entra ID"
+      - "Graph API"
+    filename_contains:
+      - "Identity"
+      - "Entra"
+      - "Passkey"
+      - "FIDO"
+      - "Conditional Access"
+      - "ConditionalAccess"
+      - "OAuth"
+      - "Sign.*In"
+      - "SignIn"
+      - "MFA"
+      - "PIM"
+      - "Global Admin"
+      - "AiTM"
+      - "Phishing"          # AiTM phishing is identity-focused
+      - "ATO"
+      - "Password"
+      - "Authentication"
+      - "Authenticator"
+      - "Device Code"
+      - "Guest User"
+      - "BadSuccessor"
+
+  endpoint:
+    label: "Endpoint & Device Security"
+    folder_contains:
+      - "Defender For Endpoint"
+      - "SecurityEvents"
+    filename_contains:
+      - "Ransomware"
+      - "USB"
+      - "Living Off The Land"
+      - "ASR"
+      - "SmartScreen"
+      - "Endpoint"
+      - "ClickFix"
+      - "Dropper"
+      - "RAT"
+      - "Malware"
+      - "Process"
+      - "Chrome extension"
+
+  email:
+    label: "Email & Office 365"
+    folder_contains:
+      - "Office 365"
+      - "Defender for Office365"
+    filename_contains:
+      - "Phish"
+      - "Email"
+      - "Mail"
+      - "AppSheet"
+      - "Spam"
+      - "Brands Impersonation"
+
+  cloud:
+    label: "Cloud Infrastructure (Azure)"
+    folder_contains:
+      - "Azure/Arc"
+      - "Azure/Compute"
+      - "Cloud Audit Events"
+      - "Data Lake"
+      - "ADX"
+      - "Log Analytics"
+    filename_contains:
+      - "Blob"
+      - "Storage"
+      - "regreSSHion"
+      - "OpenSSH"
+      - "AWS"
+      - "Arc Machine"
+      - "Azure CLI"
+      - "Azure Resource"
+      - "Azure Storage"
+      - "Azure Cloud"
+      - "Azure API"
+      - "Azure Outdated"
+      - "Commvault"
+
+  vulnerabilities:
+    label: "Vulnerabilities & Patch Management"
+    folder_contains:
+      - "Vulnerability Management"
+      - "Vulnerability Exploitation"
+      - "MDVM"
+      - "Exposure Management"
+    filename_contains:
+      - "CVE-"
+      - "CVSS"
+      - "Zero-Day"
+      - "Zero Day"
+      - "RCE"
+      - "Patch"
+      - "PoC"
+      - "Exploit"
+      - "Vulnerability"
+      - "CISA KEV"
+      - "out-of-bounds"
+      - "PipeMagic"
+      - "log4net"
+      - "Ghostscript"
+
+  cloud-apps:
+    label: "Cloud Apps & SaaS"
+    folder_contains:
+      - "Defender For Cloud Apps"
+      - "EASM"
+      - "XSPM"
+    filename_contains:
+      - "CloudApp"
+      - "Cloud App"
+      - "Graph API Abuse"
+      - "Graph API Rate"
+      - "Malicious.*Graph"
+
+  threat-hunting:
+    label: "Threat Hunting"
+    folder_contains:
+      - "Threat Hunting"
+      - "01.ThreatHunting"
+    filename_contains:
+      - "Hunting"
+      - "Nation State"
+      - "APT"
+      - "Stealth Falcon"
+      - "BlueAlpha"
+      - "GammaDrop"
+
+  detection:
+    label: "Detection Rules"
+    folder_contains:
+      - "02.ThreatDetection"
+    filename_contains:
+      - "Detection"
+      - "Detect "
+      - "Defending"
+      - "Alert"
+
+  dfir:
+    label: "DFIR & Incident Response"
+    folder_contains:
+      - "DFIR"
+    filename_contains:
+      - "DFIR"
+      - "Forensic"
+      - "Triage"
+      - "Incident"
+
+  secops:
+    label: "Security Operations"
+    folder_contains:
+      - "Security Operations"
+      - "03.SecOps"
+      - "Syslog-CEF"
+      - "Sentinel/Summary Rules"
+    filename_contains:
+      - "Syslog"
+      - "CEF"
+      - "Summary Rule"
+      - "SecOps"
+
+  xdr:
+    label: "Defender XDR"
+    folder_contains:
+      - "Defender XDR"
+      - "DefenderXDR"
+      - "Sentinel"
+
+  various:
+    label: "Various & Learning"
+    folder_contains:
+      - "Fun"
+      - "Functions"
+      - "KQL Regex"
+      - "Learning"
+      - "KustoCon"

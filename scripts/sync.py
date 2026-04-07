@@ -34,6 +34,7 @@ import yaml
 
 BASE_DIR = Path(__file__).parent.parent
 SOURCES_FILE = BASE_DIR / "sources.yaml"
+TAXONOMY_FILE = BASE_DIR / "taxonomy.yaml"
 MANIFEST_FILE = BASE_DIR / "manifest.json"
 QUERIES_DIR = BASE_DIR / "queries"
 RECENT_FILE = BASE_DIR / "RECENT.md"
@@ -41,6 +42,49 @@ README_FILE = BASE_DIR / "README.md"
 
 GITHUB_API = "https://api.github.com"
 RECENT_COUNT = 25
+
+
+# ---------------------------------------------------------------------------
+# Taxonomy / topic resolution
+# ---------------------------------------------------------------------------
+
+def load_taxonomy() -> dict:
+    if TAXONOMY_FILE.exists():
+        with open(TAXONOMY_FILE) as f:
+            return yaml.safe_load(f)
+    return {"topics": {}}
+
+
+def resolve_topic(file_path: str, taxonomy: dict) -> str:
+    """
+    Determine the topic for a file based on its path.
+    Checks folder_contains rules first, then filename_contains.
+    Returns the topic key or 'various' if nothing matches.
+    """
+    path_str = file_path.replace("\\", "/")
+    # Normalise: lower-case path components for folder matching
+    parts = [p.lower() for p in Path(file_path).parts]
+    filename = Path(file_path).name.lower()
+
+    for topic, rules in taxonomy.get("topics", {}).items():
+        # 1. Folder-based match: any path component contains the rule string
+        for pattern in rules.get("folder_contains", []):
+            pat_lower = pattern.lower()
+            # Check if any folder component contains the pattern
+            # Also support slash-separated sub-patterns like "Azure/Arc"
+            if "/" in pat_lower:
+                if pat_lower in path_str.lower():
+                    return topic
+            else:
+                if any(pat_lower in part for part in parts[:-1]):  # exclude filename part
+                    return topic
+
+        # 2. Filename keyword match
+        for keyword in rules.get("filename_contains", []):
+            if re.search(keyword, filename, re.IGNORECASE):
+                return topic
+
+    return "various"
 
 
 # ---------------------------------------------------------------------------
@@ -174,12 +218,11 @@ def save_manifest(manifest: dict):
 # Sync a single source
 # ---------------------------------------------------------------------------
 
-def sync_source(source: dict, manifest: dict, dry_run: bool) -> list[dict]:
+def sync_source(source: dict, manifest: dict, dry_run: bool, taxonomy: dict) -> list[dict]:
     repo = source["repo"]
     slug = source.get("slug", repo.split("/")[1].lower())
     file_type = source.get("file_type", "kql")
     code_fence = source.get("code_fence", "kql")
-    source_dir = QUERIES_DIR / "external" / slug
 
     print(f"  [{source['name']}] fetching tree…")
     try:
@@ -208,9 +251,13 @@ def sync_source(source: dict, manifest: dict, dry_run: bool) -> list[dict]:
         if existing.get("sha") == sha:
             continue  # unchanged
 
+        topic = resolve_topic(file_path, taxonomy)
+        # Files live at: queries/external/{topic}/{slug}/{filename}
+        topic_dir = QUERIES_DIR / "external" / topic / slug
+
         if dry_run:
             status = "NEW" if not existing else "UPDATED"
-            print(f"    {status}: {file_path}")
+            print(f"    [{topic}] {status}: {file_path}")
             continue
 
         try:
@@ -227,21 +274,20 @@ def sync_source(source: dict, manifest: dict, dry_run: bool) -> list[dict]:
                 continue
 
             stem = Path(file_path).stem
-            parent = Path(file_path).parent
 
             for platform, kql_code in blocks:
-                # Build local filename: stem_Platform.kql (deduplicate if multiple blocks/platform)
-                local_rel = parent / f"{stem}_{platform}.kql"
-                local_path = source_dir / local_rel
+                local_path = topic_dir / f"{stem}_{platform}.kql"
                 local_path.parent.mkdir(parents=True, exist_ok=True)
                 local_path.write_text(kql_code, encoding="utf-8")
 
-            # Manifest entry tracks the source .md file
+            # Manifest entry: use first block's path as representative local_path
+            rep_path = topic_dir / f"{stem}_{blocks[0][0]}.kql"
             manifest["files"][key] = {
                 "sha": sha,
-                "local_path": str((source_dir / file_path).relative_to(BASE_DIR)),
+                "local_path": str(rep_path.relative_to(BASE_DIR)),
                 "source": source["name"],
                 "slug": slug,
+                "topic": topic,
                 "platform": source.get("platform", []),
                 "file_type": "markdown",
                 "kql_blocks": len(blocks),
@@ -252,7 +298,8 @@ def sync_source(source: dict, manifest: dict, dry_run: bool) -> list[dict]:
                 new_files.append(manifest["files"][key])
 
         else:  # plain kql
-            local_path = source_dir / file_path
+            filename = Path(file_path).name
+            local_path = topic_dir / filename
             local_path.parent.mkdir(parents=True, exist_ok=True)
             local_path.write_text(raw_content, encoding="utf-8")
 
@@ -261,6 +308,7 @@ def sync_source(source: dict, manifest: dict, dry_run: bool) -> list[dict]:
                 "local_path": str(local_path.relative_to(BASE_DIR)),
                 "source": source["name"],
                 "slug": slug,
+                "topic": topic,
                 "platform": source.get("platform", []),
                 "file_type": "kql",
                 "added_at": existing.get("added_at") or now,
@@ -290,17 +338,17 @@ def generate_recent(manifest: dict):
         "",
         f"Showing the last {RECENT_COUNT} additions (auto-generated by `scripts/sync.py`).",
         "",
-        "| Query | Source | Platform | Added |",
-        "|-------|--------|----------|-------|",
+        "| Query | Topic | Source | Added |",
+        "|-------|-------|--------|-------|",
     ]
 
     for f in files:
         name = Path(f["local_path"]).stem
         path = f["local_path"]
         source = f["source"]
-        platforms = ", ".join(f.get("platform", []))
+        topic = f.get("topic", "various")
         added = f.get("added_at", "")[:10]
-        lines.append(f"| [{name}]({path}) | {source} | {platforms} | {added} |")
+        lines.append(f"| [{name}]({path}) | {topic} | {source} | {added} |")
 
     lines.append("")
     RECENT_FILE.write_text("\n".join(lines), encoding="utf-8")
@@ -311,16 +359,35 @@ def generate_recent(manifest: dict):
 # README.md
 # ---------------------------------------------------------------------------
 
-def generate_readme(manifest: dict, config: dict):
+def generate_readme(manifest: dict, config: dict, taxonomy: dict = None):
     total = len(manifest["files"])
     last_sync_raw = manifest.get("last_sync") or ""
     last_sync = (last_sync_raw[:19].replace("T", " ") + " UTC") if last_sync_raw else "never"
+
+    # Per-topic counts
+    by_topic: dict[str, int] = {}
+    for info in manifest["files"].values():
+        t = info.get("topic", "various")
+        by_topic[t] = by_topic.get(t, 0) + 1
 
     # Per-source counts
     by_source: dict[str, int] = {}
     for info in manifest["files"].values():
         src = info["source"]
         by_source[src] = by_source.get(src, 0) + 1
+
+    # Build topics table
+    topic_rows: list[str] = []
+    topics_cfg = (taxonomy or {}).get("topics", {}) if taxonomy else {}
+    for topic_key, topic_def in topics_cfg.items():
+        count = by_topic.get(topic_key, 0)
+        label = topic_def.get("label", topic_key) if isinstance(topic_def, dict) else topic_key
+        topic_rows.append(f"| `{topic_key}` | {label} | {count} |")
+    # Add "various" if not in taxonomy but has files
+    if "various" not in topics_cfg and by_topic.get("various", 0):
+        topic_rows.append(f"| `various` | Various & Learning | {by_topic['various']} |")
+
+    topics_table = "\n".join(topic_rows) if topic_rows else "| | | |"
 
     # Build sources table
     source_rows: list[str] = []
@@ -361,6 +428,16 @@ See **[RECENT.md](RECENT.md)** for the latest {RECENT_COUNT} additions.
 
 ---
 
+## Topics
+
+Queries are organised by topic, regardless of source. Each topic folder contains subfolders per source (`bert-janp`, `slimkql`, etc.).
+
+| Folder | Topic | Files |
+|--------|-------|-------|
+{topics_table}
+
+---
+
 ## Sources
 
 | Group | Repository | Platform | Format | Files | Description |
@@ -368,6 +445,7 @@ See **[RECENT.md](RECENT.md)** for the latest {RECENT_COUNT} additions.
 {sources_table}
 
 > To add a new source: edit [`sources.yaml`](sources.yaml) and run `python scripts/sync.py`.
+> To adjust topic classification: edit [`taxonomy.yaml`](taxonomy.yaml).
 
 ---
 
@@ -375,12 +453,24 @@ See **[RECENT.md](RECENT.md)** for the latest {RECENT_COUNT} additions.
 
 ```
 queries/
-├── external/          # Auto-synced from sources.yaml
-│   ├── bert-janp/     #   mirrors source repo folder structure
-│   └── kqlcafe/
-└── custom/            # Your own queries (add .kql files here)
+├── external/                   # Auto-synced, organised by topic
+│   ├── identity/               # Identity & Authentication
+│   │   ├── bert-janp/
+│   │   └── slimkql/
+│   ├── endpoint/               # Endpoint & Device Security
+│   ├── vulnerabilities/        # CVEs & Patch Management
+│   ├── email/                  # Email & Office 365
+│   ├── cloud/                  # Azure Cloud Infrastructure
+│   ├── detection/              # Detection Rules
+│   ├── threat-hunting/         # Threat Hunting
+│   ├── dfir/                   # DFIR & Incident Response
+│   ├── secops/                 # Security Operations
+│   ├── cloud-apps/             # Cloud Apps & SaaS
+│   ├── xdr/                    # Defender XDR
+│   └── various/                # Learning, utilities
+└── custom/                     # Your own queries
     ├── template.kql
-    └── template.yaml  # optional metadata sidecar
+    └── template.yaml
 ```
 
 ---
@@ -399,12 +489,13 @@ Edit `sources.yaml`:
 
 ```yaml
 sources:
-  community:          # group name (free choice)
+  community:
     - name: "My Source"
       repo: "owner/repo"
-      slug: "my-source"          # local folder name under queries/external/
+      slug: "my-source"
       platform: [MDE, Sentinel]
       file_type: kql             # kql (default) or markdown
+      code_fence: kql            # kql (default) or any (for plain ``` blocks)
       description: "..."
 ```
 
@@ -462,6 +553,7 @@ def main():
     with open(SOURCES_FILE) as f:
         config = yaml.safe_load(f)
 
+    taxonomy = load_taxonomy()
     manifest = load_manifest()
 
     if not args.readme:
@@ -470,7 +562,7 @@ def main():
         for group, sources in config.get("sources", {}).items():
             print(f"[{group}]")
             for source in sources:
-                new = sync_source(source, manifest, dry_run=args.dry_run)
+                new = sync_source(source, manifest, dry_run=args.dry_run, taxonomy=taxonomy)
                 total_new.extend(new)
             print()
 
@@ -482,7 +574,7 @@ def main():
     if not args.dry_run:
         print("Generating docs…")
         generate_recent(manifest)
-        generate_readme(manifest, config)
+        generate_readme(manifest, config, taxonomy)
 
     print("\nDone.")
 
