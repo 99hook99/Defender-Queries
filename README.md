@@ -11,7 +11,7 @@ A curated, auto-synced collection of KQL queries for Microsoft Defender and othe
 | External queries (source files) | 723 |
 | Custom queries | 1 |
 | Sources | 4 |
-| Last sync | 2026-04-07 11:41:05 UTC |
+| Last sync | 2026-04-07 12:18:55 UTC |
 
 ## Recently Added
 
@@ -60,8 +60,6 @@ Queries are organised by topic, regardless of source. Each topic folder contains
 queries/
 ├── external/                   # Auto-synced, organised by topic
 │   ├── identity/               # Identity & Authentication
-│   │   ├── bert-janp/
-│   │   └── slimkql/
 │   ├── endpoint/               # Endpoint & Device Security
 │   ├── vulnerabilities/        # CVEs & Patch Management
 │   ├── email/                  # Email & Office 365

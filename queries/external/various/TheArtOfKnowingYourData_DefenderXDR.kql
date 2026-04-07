@@ -1,0 +1,3 @@
+union withsource=TableName *
+| where Timestamp > ago(90d) 
+| distinct TableName

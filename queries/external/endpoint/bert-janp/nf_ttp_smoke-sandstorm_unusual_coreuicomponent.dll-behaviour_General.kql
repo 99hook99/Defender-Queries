@@ -1,5 +1,0 @@
-let malware = datatable (name:string)["Trojan:Win64/SnailResin","Backdoor:Win64/SlugResin","Trojan:Win32/BassBreaker"];
-AlertInfo 
-| join AlertEvidence on AlertId
-| extend Malware = tostring(parse_json(AdditionalFields).Name)
-| where ( EntityType =~ "Malware" ) and isnotempty(Malware)  and Malware has_any(malware)

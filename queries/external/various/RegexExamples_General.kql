@@ -1,0 +1,5 @@
+let RegexTest = @'\W*((?i)Admin(?-i))\W*';
+let DataSet = materialize (range numbers from 1 to 10 step 1);
+DataSet
+| extend StringTest = iff(numbers % 2  == 0, 'Admin', 'User') // Change Admin to a string that should match the RegexTest, change User to a string that should not match the RegexTest
+| where StringTest matches regex RegexTest

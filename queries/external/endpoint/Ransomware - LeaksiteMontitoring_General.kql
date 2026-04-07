@@ -1,0 +1,15 @@
+//basic KQL to query recentvictims API
+let victims = externaldata(country:string,
+        activity:string,
+        description:string,
+        discovered:string,
+        group_name:string,
+        post_title:string,
+        post_url:string,
+        published:string,
+        screenshot:string,
+        website:string,
+        infostealer:dynamic)
+[h@"https://api.ransomware.live/recentvictims"]
+with(format="multijson",ignoreFirstRecord=false);
+victims

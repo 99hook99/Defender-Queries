@@ -252,8 +252,8 @@ def sync_source(source: dict, manifest: dict, dry_run: bool, taxonomy: dict) -> 
             continue  # unchanged
 
         topic = resolve_topic(file_path, taxonomy)
-        # Files live at: queries/external/{topic}/{slug}/{filename}
-        topic_dir = QUERIES_DIR / "external" / topic / slug
+        # Files live flat at: queries/external/{topic}/
+        topic_dir = QUERIES_DIR / "external" / topic
 
         if dry_run:
             status = "NEW" if not existing else "UPDATED"
@@ -274,13 +274,14 @@ def sync_source(source: dict, manifest: dict, dry_run: bool, taxonomy: dict) -> 
                 continue
 
             stem = Path(file_path).stem
+            topic_dir.mkdir(parents=True, exist_ok=True)
 
             for platform, kql_code in blocks:
                 local_path = topic_dir / f"{stem}_{platform}.kql"
-                local_path.parent.mkdir(parents=True, exist_ok=True)
+                if local_path.exists() and not existing:
+                    continue  # duplicate filename from another source — skip
                 local_path.write_text(kql_code, encoding="utf-8")
 
-            # Manifest entry: use first block's path as representative local_path
             rep_path = topic_dir / f"{stem}_{blocks[0][0]}.kql"
             manifest["files"][key] = {
                 "sha": sha,
@@ -300,7 +301,9 @@ def sync_source(source: dict, manifest: dict, dry_run: bool, taxonomy: dict) -> 
         else:  # plain kql
             filename = Path(file_path).name
             local_path = topic_dir / filename
-            local_path.parent.mkdir(parents=True, exist_ok=True)
+            topic_dir.mkdir(parents=True, exist_ok=True)
+            if local_path.exists() and not existing:
+                continue  # duplicate filename from another source — skip
             local_path.write_text(raw_content, encoding="utf-8")
 
             manifest["files"][key] = {
@@ -455,8 +458,6 @@ Queries are organised by topic, regardless of source. Each topic folder contains
 queries/
 ├── external/                   # Auto-synced, organised by topic
 │   ├── identity/               # Identity & Authentication
-│   │   ├── bert-janp/
-│   │   └── slimkql/
 │   ├── endpoint/               # Endpoint & Device Security
 │   ├── vulnerabilities/        # CVEs & Patch Management
 │   ├── email/                  # Email & Office 365
