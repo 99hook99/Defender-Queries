@@ -1,0 +1,13 @@
+CloudAppEvents
+| where TimeGenerated > ago(30d)
+| where ActionType == "ReleaseFromIsolation"
+| extend ReleasedDevice = tostring(parse_json(RawEventData).DeviceName), ReleaseComment = tostring(parse_json(RawEventData).ActionComment)
+| project-rename InitiatedByAccountName = AccountDisplayName, InitiatedByAccounttId = AccountId
+// Lookup Isolation Reason
+| lookup kind=leftouter (CloudAppEvents
+    | where TimeGenerated > ago(30d)
+    | where ActionType == "IsolateDevice"
+    | extend IsolatedDevice = tostring(parse_json(RawEventData).DeviceName), IsolationComment = tostring(parse_json(RawEventData).ActionComment), IsolationScope = tostring(parse_json(RawEventData).ActionScope)
+    | project-rename IsolationInitiatedByAccountName = AccountDisplayName, IsoaltionInitiatedByAccounttId = AccountId, IsolationTime = TimeGenerated
+    | project IsolationTime, IsolatedDevice, IsolationComment, IsolationScope, IsolationInitiatedByAccountName, IsoaltionInitiatedByAccounttId) on $left.ReleasedDevice == $right.IsolatedDevice
+|project-reorder TimeGenerated, ReleasedDevice, ReleaseComment, InitiatedByAccountName, InitiatedByAccounttId, IsolationTime, IsolationComment, IsolationScope, IsolationInitiatedByAccountName, IsoaltionInitiatedByAccounttId

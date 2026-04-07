@@ -1,0 +1,4 @@
+let URLs = dynamic([@'/Udlaps/', @'/Usrlop/', @'/adls/index.html', @'/saml2/index.html']);
+EmailUrlInfo
+| where Url has_any (URLs)
+| join kind=inner EmailEvents on NetworkMessageId

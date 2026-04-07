@@ -1,0 +1,8 @@
+CloudAppEvents
+| where ActionType == "SetAdvancedFeatures"
+| extend WorkLoad = tostring(parse_json(RawEventData).Workload),
+    SettingsNewValue = tobool(parse_json(RawEventData).SettingsNewValue),
+    SettingName = tostring(parse_json(RawEventData).SettingName),
+    UserId = tostring(parse_json(RawEventData).UserId)
+| where SettingsNewValue == 0
+| project-reorder Timestamp, WorkLoad, SettingName, SettingsNewValue, UserId

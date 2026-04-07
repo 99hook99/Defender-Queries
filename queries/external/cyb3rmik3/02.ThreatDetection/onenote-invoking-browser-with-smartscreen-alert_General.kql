@@ -1,0 +1,12 @@
+DeviceInfo
+let Process = DeviceProcessEvents
+| where InitiatingProcessFileName contains "onenote.exe"
+// Define any other browser files below that may be present in your environment
+| where FileName has_any ("firefox.exe","msedge.exe","chrome.exe")
+| project Timestamp, DeviceId, DeviceName, AccountDomain, AccountName;
+// Joining DeviceEvents table to correlate SmartScreen URL warnings
+Process
+| join (DeviceEvents
+| where ActionType == "SmartScreenUrlWarning"
+| project DeviceId, DeviceName, InitiatingProcessAccountUpn, RemoteUrl
+) on DeviceId

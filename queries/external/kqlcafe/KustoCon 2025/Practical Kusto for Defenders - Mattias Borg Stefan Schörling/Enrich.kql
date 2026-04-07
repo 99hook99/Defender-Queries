@@ -1,0 +1,57 @@
+let CountryCodes = externaldata (CountryCode:string)
+[
+@"https://raw.githubusercontent.com/mattiasborg82/Hunting/main/General/cc.txt"
+]
+with(ignoreFirstRecord=true);
+AADSignInEventsBeta
+| join kind= leftouter (
+    CountryCodes
+    | extend Country = tostring(split(CountryCode, ",")[0])
+    | extend ccCountryCode = tostring(split(CountryCode, ",")[1])
+    | project-away CountryCode)
+on $left.Country == $right.ccCountryCode
+| where ErrorCode == 53003
+
+// DefenderBoys
+// Mattias Borg
+ExposureGraphNodes
+| extend SIDHistory = todynamic(NodeProperties.rawData.sidHistory)
+| where array_length(SIDHistory) >0
+| mv-expand SIDHistory 
+| extend SIDHistory=tostring(SIDHistory)
+| extend AccountName  = tostring(todynamic(NodeProperties.rawData.accountName)),
+         AccountDomain  = tostring(todynamic(NodeProperties.rawData.accountDomain)),
+         HasLeakedCredentials  = tostring(todynamic(NodeProperties.rawData.hasLeakedCredentials)),
+         AccountUpn  = tostring(todynamic(NodeProperties.rawData.accountUpn)),
+         UserAccountControl  = tostring(todynamic(NodeProperties.rawData.userAccountControl))
+                        | mv-apply EntityIds on (
+                            summarize Identifiers = make_bag(
+                                                            pack(
+                                                                    tostring(EntityIds.type), 
+                                                                    EntityIds.id
+                                                                )
+                                                        )
+                        )
+| join kind=leftouter (
+                        union (                 
+        ExposureGraphNodes
+        | where NodeLabel == "group"
+        | distinct ADSid = tostring(todynamic(NodeProperties.rawData.adSid)),SidHistoryTranslation=tostring(todynamic(NodeProperties.rawData.adSamAccountName))
+      ),
+      (
+        ExposureGraphNodes
+        | where NodeLabel == "user"
+        | distinct ADSid = tostring(todynamic(NodeProperties.rawData.adSid)),SidHistoryTranslation=tostring(todynamic(NodeProperties.rawData.accountName))
+      )
+                    ) on $left.SIDHistory == $right.ADSid
+                    | project-away ADSid
+                    | extend DomainIdentifier = extract(@"S-\d-\d-\d{2}-((\d+-){2}\d+)-\d+", 1, tostring(SIDHistory))
+      | join kind = leftouter (
+                   ExposureGraphNodes
+                    | where NodeLabel == "user"
+                    | extend _tmpSID =  tostring(todynamic(NodeProperties.rawData.adSid))
+                    | where isnotempty(_tmpSID)
+                    |extend DomainIdentifier = extract(@"S-\d-\d-\d{2}-((\d+-){2}\d+)-\d+", 1, tostring(_tmpSID))
+                    | distinct DomainIdentifier,Domain=tostring(todynamic(NodeProperties.rawData.accountDomain))      
+                    | where Domain !has "onmicrosoft.com"
+            ) on DomainIdentifier

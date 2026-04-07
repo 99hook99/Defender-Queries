@@ -1,0 +1,9 @@
+let Profile = ""; // Insert ProfileId here
+DeviceBaselineComplianceAssessment
+| where ProfileId == Profile 
+| where IsCompliant == "0"
+| where IsExempt == "0"
+| join kind=inner (
+    DeviceBaselineComplianceAssessmentKB
+) on ConfigurationId
+| summarize by ConfigurationId, ConfigurationName, ConfigurationDescription, ConfigurationCategory, RemediationOptions, ConfigurationBenchmark

@@ -1,0 +1,5 @@
+SentinelAudit
+| where Status == @"Success"
+| where Description == @"Create or update analytics rule." or Description == @"Analytics rule deleted"
+| extend User = parse_json(ExtendedProperties)["CallerName"]
+| project TimeGenerated, SentinelResourceName, Description, User

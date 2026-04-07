@@ -1,0 +1,9 @@
+CloudAppEvents
+| where ActionType == "Write AlertsSuppressionRules"
+| project
+     Timestamp,
+     ActionType,
+     Application,
+     AccountId,
+     AccountDisplayName,
+     CreatedSupresionRule = ObjectName

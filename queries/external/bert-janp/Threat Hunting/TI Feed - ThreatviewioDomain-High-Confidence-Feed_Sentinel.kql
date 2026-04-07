@@ -1,0 +1,6 @@
+let ThreatIntelFeed = externaldata(Domain: string)[@"https://threatview.io/Downloads/DOMAIN-High-Confidence-Feed.txt"] with (format="txt", ignoreFirstRecord=True);
+DeviceNetworkEvents
+| where tolower(RemoteUrl) has_any (ThreatIntelFeed)
+| extend GeoIPInfo = geo_info_from_ip_address(RemoteIP)
+| extend country = tostring(parse_json(GeoIPInfo).country), state = tostring(parse_json(GeoIPInfo).state), city = tostring(parse_json(GeoIPInfo).city), latitude = tostring(parse_json(GeoIPInfo).latitude), longitude = tostring(parse_json(GeoIPInfo).longitude)
+| project-reorder TimeGenerated, DeviceName, RemoteIP, RemotePort, InitiatingProcessAccountName

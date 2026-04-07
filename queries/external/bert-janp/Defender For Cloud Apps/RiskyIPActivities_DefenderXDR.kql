@@ -1,0 +1,3 @@
+CloudAppEvents
+| where IPCategory == "Risky"
+| project Timestamp, ActionType, IPAddress, IPCategory, ISP, RawEventData

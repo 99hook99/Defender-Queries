@@ -1,0 +1,3 @@
+let VictimDeviceId = "xxxxxxxxx";
+let TopXEvents = 15;
+let TimeFrame = 5m;

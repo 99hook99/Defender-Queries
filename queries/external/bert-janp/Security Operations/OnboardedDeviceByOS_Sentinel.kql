@@ -1,0 +1,4 @@
+DeviceInfo
+| where OnboardingStatus == "Onboarded"
+| summarize arg_max(Timestamp, *) by DeviceId
+| summarize TotalDevices = count() by OSPlatform

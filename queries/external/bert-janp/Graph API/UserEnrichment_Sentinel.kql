@@ -1,0 +1,8 @@
+MicrosoftGraphActivityLogs
+| where isnotempty(UserId)
+| lookup kind=leftouter (IdentityInfo
+    | where TimeGenerated > ago(30d)
+    | summarize arg_max(TimeGenerated, *) by AccountObjectId
+    | project AccountObjectId, AccountDisplayName, AccountUpn)
+    on $left.UserId == $right.AccountObjectId
+| project-reorder AccountDisplayName, AccountUpn, RequestMethod, RequestUri

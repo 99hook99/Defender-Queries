@@ -1,0 +1,6 @@
+union * 
+| extend Action = coalesce(Operation, OperationName, OperationNameValue, ActionType) 
+| where isnotempty(Action) 
+| summarize TotalEvents = count() by Type, Action
+| extend RetrievalDate = StartDate
+| sort by Type

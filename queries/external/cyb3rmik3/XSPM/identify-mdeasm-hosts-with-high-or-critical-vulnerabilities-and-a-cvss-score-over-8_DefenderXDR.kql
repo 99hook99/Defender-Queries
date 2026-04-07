@@ -1,0 +1,7 @@
+ExposureGraphNodes
+| where NodeLabel == @"dns-host"
+| extend GraphNodeProperties = parse_json(NodeProperties)
+| where GraphNodeProperties["rawData"]["highRiskVulnerabilityInsights"]["hasHighOrCritical"] == "true"
+| where toreal(GraphNodeProperties["rawData"]["highRiskVulnerabilityInsights"]["maxCvssScore"]) > 8
+| extend CVSSScore = parse_json(NodeProperties)["rawData"]["highRiskVulnerabilityInsights"]["vulnerableToRemoteCodeExecution"]["maxCvssScore"]
+| project NodeId, Host=NodeName, CVSSScore

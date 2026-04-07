@@ -1,0 +1,16 @@
+let StartTime = 2d;
+let BinFormat = 1d;
+let Threshold = 10;
+DeviceProcessEvents
+| where TimeGenerated > startofday(ago(StartTime))
+| where FileName in ("net.exe", "net1.exe")
+| extend NetActionType = case(ProcessCommandLine has "accounts", "ACCOUNTS", 
+    ProcessCommandLine has "group", "GROUP", 
+    ProcessCommandLine has "user", "USER", 
+    ProcessCommandLine has "localgroup", "LOCALGROUP", 
+    "Other")
+| where NetActionType != "Other"
+| where isnotempty(AccountUpn)
+| summarize TotalEvents = count(), TotalAccountsEvents = countif(NetActionType == "ACCOUNTS"), TotalGroupEvents = countif(NetActionType == "GROUP"), TotalUserEvents = countif(NetActionType == "USER"), TotalLocalGroupEvents = countif(NetActionType == "LOCALGROUP"), ExecutedCommands = make_set(ProcessCommandLine), LastEvent = arg_max(TimeGenerated, *), FirstEvent = arg_min(TimeGenerated, *) by AccountUpn, bin(TimeGenerated, BinFormat)
+| where TotalEvents >= Threshold
+| project-reorder FirstEvent, LastEvent, TotalEvents, TotalAccountsEvents, TotalGroupEvents, TotalLocalGroupEvents, TotalUserEvents, ExecutedCommands

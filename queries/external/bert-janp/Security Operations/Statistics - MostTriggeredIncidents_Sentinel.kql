@@ -1,0 +1,8 @@
+let timeframe = 7d;
+SecurityIncident
+| where TimeGenerated > ago(timeframe)
+// Collect the first entry of each alert
+| summarize arg_min(TimeGenerated, *) by IncidentNumber
+// Get the alert statistics
+| summarize Triggers = count(), AlertIds = make_set(IncidentNumber) by Title
+| top 10 by Triggers

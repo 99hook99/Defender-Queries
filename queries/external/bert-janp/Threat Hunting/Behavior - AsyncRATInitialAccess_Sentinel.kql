@@ -1,0 +1,12 @@
+EmailEvents
+// Only select inbound mails
+| where EmailDirection == "Inbound"
+// Join the attachment information where onenote files have been send
+| join kind=inner (EmailAttachmentInfo
+     | where FileType == "one;onenote")
+     on NetworkMessageId
+| project SenderFromAddress, RecipientEmailAddress, Subject, FileName, SHA256
+// Join the file events, which means that the attachment has been opened.
+| join kind=inner (DeviceFileEvents
+     | project DeviceName, SHA256, FolderPath)
+     on SHA256

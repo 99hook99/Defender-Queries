@@ -1,0 +1,8 @@
+GraphAPIAuditEvents
+| where EntityType == "user"
+| lookup kind=leftouter (IdentityInfo
+    | where TimeGenerated > ago(30d)
+    | summarize arg_max(TimeGenerated, *) by AccountObjectId
+    | project AccountObjectId, AccountDisplayName, AccountUpn)
+    on $left.AccountObjectId == $right.AccountObjectId
+| project-reorder AccountDisplayName, AccountUpn, RequestMethod, RequestUri

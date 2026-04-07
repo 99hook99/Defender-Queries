@@ -1,0 +1,5 @@
+EmailPostDeliveryEvents
+| where ThreatTypes == "Phish"
+| extend DetectionMethod = tostring(extract(@'Phish":\["(.*?)"]', 1, DetectionMethods))
+| summarize TotalEvents = count() by DetectionMethod
+| render piechart with(title="Phishing Detection Reason Overview")

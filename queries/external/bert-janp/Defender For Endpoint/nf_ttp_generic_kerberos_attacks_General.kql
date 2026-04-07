@@ -1,0 +1,3 @@
+DeviceProcessEvents
+| where ProcessCommandLine has_any ('ptt /ticket', ' monitor /interval', ' asktgt', ' asktgs', ' golden', ' silver', ' kerberoast', ' asreproast', ' renew', ' brute')
+| project Timestamp, AccountName, DeviceName, InitiatingProcessFileName, InitiatingProcessCommandLine, FileName, ProcessCommandLine

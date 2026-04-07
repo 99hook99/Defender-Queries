@@ -1,0 +1,19 @@
+let DevVulNetShares = DeviceTvmSecureConfigurationAssessment 
+    | where ConfigurationId has "scid-4001"
+    | where IsCompliant == "0"
+    | where IsApplicable == "1"
+    | extend Folder = parse_json(Context)[0][0]
+    | extend Path = parse_json(Context)[0][1]
+    | project DeviceId, DeviceName, OSPlatform, Folder, Path;
+let DeviceInformation = DeviceInfo
+    | where ExposureLevel has "High"
+    | distinct DeviceId, ExposureLevel;
+union DevVulNetShares, DeviceInformation
+    | summarize by DeviceId
+    | join ( DevVulNetShares ) on DeviceId
+    | join kind=leftouter ( DeviceInformation ) on DeviceId
+    | project DeviceId,
+            DeviceName,
+            OSPlatform, 
+            Folder, 
+            Path

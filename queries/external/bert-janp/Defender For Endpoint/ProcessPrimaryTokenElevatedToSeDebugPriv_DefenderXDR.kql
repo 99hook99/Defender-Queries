@@ -1,0 +1,10 @@
+// Token elevated to SeDebugPriv
+let SeDebugPriv = binary_shift_left(1, 20);
+DeviceEvents
+| where Timestamp > ago(7d)
+| where ActionType == 'ProcessPrimaryTokenModified'
+| extend CurrentTokenPrivEnabled = tolong(parse_json(AdditionalFields).CurrentTokenPrivEnabled), OriginalTokenPrivEnabled = tolong(parse_json(AdditionalFields).OriginalTokenPrivEnabled)
+| extend PrivilegeDiff = binary_xor(OriginalTokenPrivEnabled, CurrentTokenPrivEnabled)
+| where PrivilegeDiff == SeDebugPriv
+| invoke FileProfile(InitiatingProcessSHA256)
+| project-reorder Timestamp, ActionType, InitiatingProcessFileName, InitiatingProcessSHA256, InitiatingProcessFolderPath, GlobalPrevalence, GlobalFirstSeen, InitiatingProcessCommandLine

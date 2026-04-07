@@ -1,0 +1,13 @@
+DeviceNetworkEvents
+| where InitiatingProcessFileName == "AnyDesk.exe"
+| where LocalIPType == "Private"
+| where RemoteIPType == "Public"
+| where RemoteUrl != "boot.net.anydesk.com" // Initial AnyDesk Connection when booted.
+| project
+     Timestamp,
+     DeviceId,
+     InitiatingProcessAccountName,
+     ActionType,
+     RemoteIP,
+     RemotePort,
+     RemoteUrl

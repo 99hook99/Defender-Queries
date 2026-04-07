@@ -1,0 +1,5 @@
+let killnetRansomNote = "ru.txt";
+let killnetRansomExtension = ".killnet";
+DeviceFileEvents
+| where FileName =~ killnetRansomNote or FileName endswith killnetRansomExtension
+| project-reorder TimeGenerated, DeviceName, FileName, FolderPath, InitiatingProcessCommandLine

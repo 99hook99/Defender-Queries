@@ -1,0 +1,6 @@
+CloudAppEvents
+| where Timestamp > ago(30d)
+| where ActionType == "ExclusionConfigurationAdded"
+| extend Workload = tostring(parse_json(RawEventData).Workload), ResultStatus = tostring(parse_json(RawEventData).ResultStatus), ResultDescription = tostring(parse_json(RawEventData).ResultDescription)
+| project-rename InitiatedByAccountName = AccountDisplayName, InitiatedByAccounttId = AccountId
+| project-reorder Timestamp, Workload, ResultDescription, ResultStatus,  InitiatedByAccountName, InitiatedByAccounttId

@@ -1,0 +1,12 @@
+let StartTime = 30d;
+DeviceProcessEvents
+| where TimeGenerated > startofday(ago(StartTime))
+| where FileName in ("net.exe", "net1.exe")
+| extend NetActionType = case(ProcessCommandLine has "accounts", "ACCOUNTS", 
+    ProcessCommandLine has "group", "GROUP", 
+    ProcessCommandLine has "user", "USER", 
+    ProcessCommandLine has "localgroup", "LOCALGROUP", 
+    "Other")
+| where NetActionType != "Other"
+| where isnotempty(AccountUpn)
+| summarize TotalEvents = count(), TotalAccountsEvents = countif(NetActionType == "ACCOUNTS"), TotalGroupEvents = countif(NetActionType == "GROUP"), TotalUserEvents = countif(NetActionType == "USER"), TotalLocalGroupEvents = countif(NetActionType == "LOCALGROUP"), ExecutedCommands = make_set(ProcessCommandLine) by AccountUpn

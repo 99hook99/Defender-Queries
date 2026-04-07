@@ -1,0 +1,10 @@
+let timeframe = 7d;
+AlertInfo
+| where Timestamp > ago(timeframe)
+// Collect the last entry of each alert
+| summarize arg_max(Timestamp, *) by AlertId
+// Ensure that events with multiple techniques can be counted
+| extend MitreTechnique = todynamic(AttackTechniques)
+| mv-expand MitreTechnique
+| summarize TriggerCount = count() by tostring(MitreTechnique)
+| top 10 by TriggerCount

@@ -1,0 +1,34 @@
+// Conditional Access Report
+// https://www.linkedin.com/posts/activity-7192037878783205377-lq27/
+
+// Do you know you can access all these CA statistics from Signin Logs table using KQL? 😎
+
+// Using Sentinel and the below KQL will provide you the statistics ("Success"/"Failure"/"Not applied") of all your conditional access rules based on certain number of days. You can further summarize these set of data to better understand your conditional access rule trigger and tweak it to improve the security controls. 🛡
+
+SigninLogs
+| where TimeGenerated > ago(30d)
+// Additional Toggle to determine CA result for success/failure login
+//| where ResultType == "0"
+| where ConditionalAccessPolicies != "[]"
+| mv-expand ConditionalAccessPolicies
+| extend CADisplayName = tostring(ConditionalAccessPolicies.displayName)
+| extend CAResult = tostring(ConditionalAccessPolicies.result)
+| summarize Count=count() by CADisplayName, CAResult
+| sort by CADisplayName asc 
+
+// MITRE ATT&CK Mapping
+
+// The KQL query primarily focuses on analyzing Conditional Access Policies, which can be associated with the following MITRE ATT&CK techniques:
+
+// T1078 - Valid Accounts:
+// Description: Adversaries may use valid accounts to gain initial access, persist, escalate privileges, or evade detection.
+// Relevance: The query checks for Conditional Access Policies, which are often used to enforce multi-factor authentication (MFA) and other security measures to protect valid accounts.
+// T1110 - Brute Force:
+// Description: Adversaries may use brute force techniques to attempt to gain access to accounts.
+// Relevance: The query can be adapted to filter for failed login attempts (e.g., by uncommenting the ResultType == "0" line), which can help detect brute force attempts.
+// T1190 - Exploit Public-Facing Application:
+// Description: Adversaries may exploit vulnerabilities in public-facing applications to gain access.
+// Relevance: Conditional Access Policies can help mitigate the risk of exploitation by enforcing additional authentication requirements.
+// T1071 - Application Layer Protocol:
+// Description: Adversaries may use application layer protocols to communicate with systems under their control.
+// Relevance: Monitoring Conditional Access Policies can help detect unusual or unauthorized access patterns that may indicate the use of such protocols.

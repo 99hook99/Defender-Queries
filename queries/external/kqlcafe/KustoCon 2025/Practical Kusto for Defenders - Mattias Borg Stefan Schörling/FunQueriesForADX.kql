@@ -1,0 +1,43 @@
+// Smiley
+// DefenderBoys
+let CirclePoints = range i from 0 to 360 step 15 
+| project x=cos(i*pi()/180)*1.2, y=sin(i*pi()/180)*1.2, size=2, color='blue'; 
+let Smiley = datatable(x: real, y: real, size: int, color: string)
+[ 
+    0, 0, 15, 'red',
+    -0.5, 0.7, 4, 'blue', 0.5, 0.7, 4, 'blue', 
+    -0.4, -0.2, 3, 'red', -0.3, -0.3, 3, 'red', -0.2, -0.4, 3, 'red', -0.1, -0.45, 3, 'red', 
+    0, -0.47, 3, 'red', 0.1, -0.45, 3, 'red', 0.2, -0.4, 3, 'red', 0.3, -0.3, 3, 'red', 0.4, -0.2, 3, 'red' // Mouth
+]; 
+CirclePoints 
+| union Smiley 
+| render scatterchart with (xcolumn=x, ycolumns=y, series=color, kind=unstacked)
+
+
+// Wave pattern
+// DefenderBoys
+let demo = range i from 0 to 1440 step 5
+| project x=(i/360) * cos(i * pi()/360), y=(i/360) * sin(i * pi()/180), size=10, color='blue';
+demo | render scatterchart with (xcolumn=x, ycolumns=y, series=color, kind=unstacked)
+
+// Christmas Tree
+// DefenderBoys
+let TreeLevels = range i from 1 to 8 step 1 
+| project i, x1=-0.15*i, x2=0.15*i, y=-0.2*i + 0.7, key=1;
+let Tree = TreeLevels
+| join kind=inner (range x from -1.2 to 1.2 step 0.05 | project x, key=1) on key
+| where x between (x1 .. x2)
+| project x, y, color='black';
+let Trunk = range x from -0.2 to 0.2 step 0.05 
+| project x, key=1
+| join kind=inner (range y from -1.8 to -1.4 step 0.05 | project y, key=1) on key
+| project x, y, color='';
+let Star = range i from 0 to 360 step 10 
+| project x=cos(i*pi()/180)*0.15, y=sin(i*pi()/180)*0.15 + 0.9, color='red';
+let Ornaments = range i from 1 to 6 step 1 
+| project x=cos(i*60*pi()/180)*0.5, y=sin(i*60*pi()/180)*0.5 + 0.1, color='white';
+Tree
+| union Trunk
+| union Ornaments
+| union Star
+| render scatterchart with (xcolumn=x, ycolumns=y, series=color, kind=unstacked)

@@ -1,0 +1,19 @@
+let AllDomainControllers =
+    DeviceNetworkEvents
+    | where LocalPort == 88
+    | where LocalIPType == "FourToSixMapping"
+    | summarize make_set(DeviceId);
+DeviceEvents
+| where ActionType == "SecurityGroupCreated"
+| where not(DeviceId in (AllDomainControllers))
+| extend Details = parse_json(AdditionalFields)
+| extend
+    GroupName = tostring(Details.GroupName),
+    GroupDomainName = tostring(Details.GroupDomainName),
+    GroupSid = tostring(Details.GroupSid)
+| join kind=inner (DeviceInfo
+    | where TimeGenerated > ago(30d)
+    | summarize arg_max(TimeGenerated, *) by DeviceId
+    | project DeviceId, OSPlatform, DeviceType)
+    on DeviceId
+| project TimeGenerated, DeviceId, DeviceName, GroupName, GroupDomainName, GroupSid, OSPlatform, DeviceType, ReportId

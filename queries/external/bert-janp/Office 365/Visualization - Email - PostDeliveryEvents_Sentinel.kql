@@ -1,0 +1,3 @@
+EmailPostDeliveryEvents
+| summarize TotalEvents = count() by Action
+| render piechart with(title="Post Delivery Events")

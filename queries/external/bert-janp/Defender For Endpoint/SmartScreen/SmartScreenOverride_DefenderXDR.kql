@@ -1,0 +1,3 @@
+DeviceEvents
+| where ingestion_time() > ago(7d)
+| where ActionType == "SmartScreenUserOverride"

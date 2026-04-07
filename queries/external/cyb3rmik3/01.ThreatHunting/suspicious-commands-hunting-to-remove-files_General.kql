@@ -1,0 +1,5 @@
+let Timeframe = 1d; // Choose the best timeframe for your investigation
+DeviceProcessEvents
+| where Timestamp > ago(Timeframe)
+| where ProcessCommandLine contains "&& rmdir" and ProcessCommandLine contains "&& del"
+| project Timestamp, DeviceName, FileName, FolderPath, SHA256, ProcessVersionInfoFileDescription, ProcessCommandLine, AccountName, InitiatingProcessParentFileName

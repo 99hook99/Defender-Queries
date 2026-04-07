@@ -1,0 +1,17 @@
+let DeviceInformation = DeviceInfo
+    | project DeviceId, DeviceName;
+DeviceInformation
+| join ( DeviceTvmCertificateInfo
+    | where KeySize == "0"
+    | where SignatureAlgorithm == ""
+    | extend TOCN = parse_json(IssuedTo).CommonName
+    | extend TOORG = parse_json(IssuedTo).Organization
+    | extend TOCountry = parse_json(IssuedTo).CountryName 
+    | extend BYCN = parse_json(IssuedBy).CommonName
+    | extend BYORG = parse_json(IssuedBy).Organization
+    | extend BYCountry = parse_json(IssuedBy).CountryName
+    | project DeviceId, Thumbprint, TOCN, TOORG, TOCountry, 
+        BYCN, BYORG, BYCountry
+) on DeviceId
+| project DeviceId, DeviceName, Thumbprint, TOCN,
+    TOORG, TOCountry, BYCN, BYORG, BYCountry

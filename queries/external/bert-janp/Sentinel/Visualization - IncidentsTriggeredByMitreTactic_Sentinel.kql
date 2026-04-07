@@ -1,0 +1,11 @@
+SecurityIncident
+// Collect last argumtent of incident
+| summarize arg_max(TimeGenerated, *) by IncidentNumber
+| extend MitreTactic = todynamic(parse_json(AdditionalData).tactics)
+// Filter only on Incidents that contain Mitre Tactic
+| where MitreTactic != "[]"
+| mv-expand MitreTactic
+| extend MitreTactic = tostring(MitreTactic)
+| summarize count() by MitreTactic
+| sort by count_
+| render columnchart  with (title="Incidents triggered by MITRE ATT&CK Tactics", ytitle="Incidents Triggered")

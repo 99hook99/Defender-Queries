@@ -1,0 +1,3 @@
+DeviceProcessEvents
+| where ProcessCommandLine has_any (" --buildcache "," --bhdump ", " --certdump "," --dnsdump ")
+  and ProcessCommandLine has_any (" -c "," --cachefilename ", " -o "," --outputdirectory")

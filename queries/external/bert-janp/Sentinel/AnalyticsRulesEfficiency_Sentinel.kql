@@ -1,0 +1,18 @@
+let TimeRange = 30d;
+SecurityIncident
+| where TimeGenerated > ago(TimeRange)
+// Collect last argumtent of incident
+| summarize arg_max(TimeGenerated, *) by IncidentNumber
+// Filter only on Analytics rules in Sentinel
+| where RelatedAnalyticRuleIds != "[]"
+// Only filter on closed incidents.
+| where isnotempty(Classification)
+| summarize
+     TotalIncidentsTriggered = count(),
+     TotalUndetermined = countif(Classification == "Undetermined"),
+     TotalBenignPositive = countif(Classification == "BenignPositive"),
+     TotalTruePositive = countif(Classification == "TruePositive"),
+     TotalFalsePositive = countif(Classification == "FalsePositive")
+     by tostring(RelatedAnalyticRuleIds), Title
+// Sort by incidents that do not trigger malicious activities
+| sort by TotalFalsePositive, TotalIncidentsTriggered

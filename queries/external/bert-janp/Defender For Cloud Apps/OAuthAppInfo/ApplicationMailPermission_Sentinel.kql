@@ -1,0 +1,7 @@
+OAuthAppInfo
+| where Permissions has "Mail."
+| summarize arg_max(TimeGenerated, *) by OAuthAppId
+| mv-expand Permissions
+| extend PermissionValue = tostring(Permissions.PermissionValue), InUse = tobool(Permissions.InUse), PrivilegeLevel = tostring(Permissions.PrivilegeLevel)
+| where PermissionValue startswith "Mail."
+| summarize TotalMailPermissions = dcount(PermissionValue), Permissions = make_set(PermissionValue) by OAuthAppId, AppName, AppOrigin

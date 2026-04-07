@@ -1,0 +1,7 @@
+let CompromisedDevices = dynamic (["workstation01", "server1"]);
+let SearchWindow = 7d; //Customizable h = hours, d = days
+DeviceRegistryEvents
+| where Timestamp > ago(SearchWindow)
+| where DeviceName has_any (CompromisedDevices)
+| where RegistryKey endswith @'\Software\Microsoft\Windows\CurrentVersion\Run' or  RegistryKey endswith @'\Microsoft\Windows\CurrentVersion\RunOnce'
+| project-reorder TimeGenerated, ActionType, DeviceId, DeviceName, RegistryKey, PreviousRegistryValueData, InitiatingProcessCommandLine

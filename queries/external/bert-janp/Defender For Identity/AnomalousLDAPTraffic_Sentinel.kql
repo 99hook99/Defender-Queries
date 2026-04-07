@@ -1,0 +1,31 @@
+// Variables to define the anomalous behaviour
+let starttime = 90d;
+let endtime = 1d;
+// Timeframe in which the amount of LDAP queries are counted
+let timeframe = 1h;
+let TotalEventsThreshold = 1;
+// Collect workstation devicenames
+let Workstations = DeviceInfo
+    | where TimeGenerated > ago(30d)
+    | where DeviceType == "Workstation"
+    | distinct DeviceName;
+// Collect LDAP statistics for each device
+let TimeSeriesData = IdentityQueryEvents
+    | where ActionType == "LDAP query"
+    // If you want to have all devices included remove line below.
+    | where DeviceName in~ (Workstations)
+    | make-series PerHourCount=count() on TimeGenerated from startofday(ago(starttime)) to startofday(ago(endtime)) step timeframe by DeviceName;
+// Generate LDAP baseline for each device
+let TimeSeriesAlerts=TimeSeriesData
+    | extend (anomalies, score, baseline) = series_decompose_anomalies(PerHourCount, 1.5, -1, 'linefit')
+    | mv-expand
+        PerHourCount to typeof(double),
+        TimeGenerated to typeof(datetime),
+        anomalies to typeof(double),
+        score to typeof(double),
+        baseline to typeof(long);
+TimeSeriesAlerts
+| where anomalies > 0
+// Baseline is the most important result, that is the avarage amount of LDAP queries executed by a device, the PerHourCount shows the deviation from this amount.
+| project DeviceName, Timestamp, PerHourCount, baseline, anomalies, score
+| where PerHourCount > TotalEventsThreshold

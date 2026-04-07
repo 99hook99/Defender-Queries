@@ -1,0 +1,4 @@
+DeviceEvents 
+| where ActionType == "AmsiScriptDetection" 
+| extend Description = tostring(parse_json(AdditionalFields).Description) 
+| project TimeGenerated, DeviceName, DeviceId, InitiatingProcessCommandLine, Description, ReportId

@@ -1,0 +1,10 @@
+// Define browser executable filenames
+let Browser = dynamic(["firefox.exe", "msedge.exe", "chrome.exe", "opera.exe", "brave.exe"]);
+DeviceNetworkEvents
+// Define timeframe 
+| where Timestamp > ago(30d)
+| where not(InitiatingProcessFileName in (['Browser']))
+// Define service used to locate geographical information
+| where RemoteUrl contains 'geoplugin.net'
+| project Timestamp, DeviceName, LocalIP, RemoteUrl, RemoteIP, RemotePort, InitiatingProcessFileName, InitiatingProcessAccountUpn
+| sort by Timestamp desc

@@ -1,0 +1,27 @@
+search in(CloudAppEvents) 'Microsoft365Defender'
+| where Timestamp > ago(180d)    // How far back to check
+| where parse_json(RawEventData).Workload=='Microsoft365Defender'
+// Track rule creation/mods/deletion
+| where ActionType has_any ('CreateCustomDetection', 'EditCustomDetection', 'ChangeCustomDetectionRuleStatus', 'DeleteCustomDetection')
+| extend RuleName = tostring((RawEventData).RuleName)
+| extend RuleId = tostring((RawEventData).RuleId)
+| extend Query = parse_json(RawEventData).Query
+| extend AlertTitle = parse_json(RawEventData).AlertTitle
+| extend Author = iff(ActionType=='CreateCustomDetection', parse_json(RawEventData).UserId, 'null')
+| extend LastAuthor = parse_json(RawEventData).UserId
+| extend AlertCategory = parse_json(RawEventData).AlertCategory
+| extend AlertSeverity = parse_json(RawEventData).AlertSeverity
+| extend MitreTechniques = parse_json(RawEventData).MitreTechniques
+| extend RuleFrequency = parse_json(RawEventData).RuleFrequency
+| extend CreationTime=iff(ActionType=='CreateCustomDetection', Timestamp, datetime(null))
+| extend LastUpdateTime=iff(ActionType=='EditCustomDetection', Timestamp, datetime(null))
+| extend IsEnabled = parse_json(RawEventData).IsEnabled
+| extend IsEnabled = case(
+  IsEnabled == false, 0,
+  (IsEnabled == true) or ActionType=='CreateCustomDetection' or (ActionType=='EditCustomDetection' and Query has 'xxxFLAGxxx'), 1
+  , int(null))
+// Captures the latest states per rule name/id
+| summarize arg_max(Timestamp, ActionType, CreationTime, LastUpdateTime, AlertTitle, Author, LastAuthor, 
+  IsEnabled, AlertCategory, AlertSeverity, MitreTechniques, RuleFrequency, Query) 
+  by RuleName, RuleId
+//| project-away Query

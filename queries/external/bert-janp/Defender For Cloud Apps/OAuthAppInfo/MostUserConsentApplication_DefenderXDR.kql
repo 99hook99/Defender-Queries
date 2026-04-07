@@ -1,0 +1,9 @@
+let PrivilegeLevelInput = pack_array('Medium', 'High');
+OAuthAppInfo
+| where AppOrigin == "External"
+| where ConsentedUsersCount > 0
+| summarize arg_max(Timestamp, *) by OAuthAppId
+| where PrivilegeLevel in (PrivilegeLevelInput)
+| extend PublisherName = tostring(VerifiedPublisher.displayName), DateAdded = todatetime(VerifiedPublisher.addedDateTime)
+| project AppName, OAuthAppId, ServicePrincipalId, AddedOnTime, PublisherName, AppOwnerTenantId, ConsentedUsersCount
+| top 10 by ConsentedUsersCount

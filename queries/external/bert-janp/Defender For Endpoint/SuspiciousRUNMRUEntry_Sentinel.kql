@@ -1,0 +1,7 @@
+let Parameters = dynamic(['http', 'https', 'Encoded', 'EncodedCommand', '-e', '-eC', '-enc', "-w", '-i', '/i','/e', '/eC', '/enc', "/w", 'wind', 'nop', 'DownloadString', 'FromBase64String', 'iwr', '$env']);
+let Executables = dynamic(["cmd", "powershell", "curl", "mshta", "msiexec", 'SyncAppvPublishingServer']);
+DeviceRegistryEvents
+| where ActionType == "RegistryValueSet"
+| where RegistryKey has "RunMRU"
+| where RegistryValueData has_any (Parameters) and RegistryValueData has_any (Executables)
+| project-reorder TimeGenerated, DeviceId, DeviceName, RegistryValueData, RegistryKey

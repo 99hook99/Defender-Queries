@@ -1,0 +1,4 @@
+CloudAppEvents
+| where ActionType == "RunAntiVirusScan"
+| extend DeviceName = tostring(parse_json(RawEventData).DeviceName), ActionComment = tostring(parse_json(RawEventData).ActionComment), ActionScope = tostring(parse_json(RawEventData).ActionScope)
+| summarize TotalAntivirusScans = count(), ScanTypes = make_set(ActionScope), Comments = make_set(ActionComment) by DeviceName

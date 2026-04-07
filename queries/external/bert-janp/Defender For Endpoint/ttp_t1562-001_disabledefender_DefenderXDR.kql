@@ -1,0 +1,3 @@
+//Detection opportunity 3: Abusing PowerShell to disable Defender components
+DeviceProcessEvents
+| where FileName =~ "powershell.exe" and ProcessCommandLine has_any ("Add-MpPreference","Set-MpPreference") and ProcessCommandLine has_any ("ExclusionProcess","ExclusionPath")

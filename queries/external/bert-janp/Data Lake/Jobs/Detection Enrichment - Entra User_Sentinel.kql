@@ -1,0 +1,5 @@
+EntraUsers
+| where TimeGenerated > ago(3d)
+| summarize arg_max(TimeGenerated, * ) by id
+| project-away _*
+| project-rename ObjectId = id

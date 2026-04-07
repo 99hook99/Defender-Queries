@@ -1,0 +1,9 @@
+SecurityAlert
+// Define timerange
+| where TimeGenerated > ago(30d)
+| where isnotempty(Techniques)
+| mvexpand todynamic(Techniques) to typeof(string)
+| summarize AlertCount = dcount(SystemAlertId) by Techniques
+| sort by AlertCount desc
+// Define graphic
+| render piechart

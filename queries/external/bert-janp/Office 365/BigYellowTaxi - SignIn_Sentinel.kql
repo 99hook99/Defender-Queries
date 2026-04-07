@@ -1,0 +1,24 @@
+let DefaultInboxFolders = pack_array("Inbox", "Drafts", "Sent Items", "Archive", "rss", "Inbox", "Deleted Items", "Junk Email");
+let BinSize = 30m;
+let TimeFrame = 14d;
+let MaxSuccess = 10;
+let MailBoxSyncOperations =  OfficeActivity
+// List all MailItemsAccessed that are created because of a sync audit activity.
+// The audit volume for sync operations is huge. So, instead of generating an audit record for each mail item that's synched, we generate an audit event for the mail folder containing items that were synched and assume that all mail items in the synched folder have been compromised.
+// Info: https://learn.microsoft.com/en-us/purview/audit-log-investigate-accounts?view=o365-worldwide#auditing-sync-access
+| where Operation == "MailItemsAccessed"
+| extend MailAccessType = tostring(parse_json(OperationProperties[0]).Value), IsThrottled = tostring(parse_json(OperationProperties[1]).Value)
+| where MailAccessType == "Sync"
+// Parse synchronised folders. All FolderNames should be considered compromised.
+| extend ParentFolder = parse_json(Item).ParentFolder
+| extend SyncedFolder = tostring(ParentFolder.Name), Path = tostring(ParentFolder.Path)
+| summarize TotalFolers = dcount(SyncedFolder), Folders = make_set(SyncedFolder) by bin(TimeGenerated, BinSize), UserId, Client_IPAddress, MailboxGuid;
+let LargeSyncOperations = MailBoxSyncOperations
+// Filter & enrich results
+| where TotalFolers >= array_length(DefaultInboxFolders)
+| extend GeoIPInfo = geo_info_from_ip_address(Client_IPAddress)
+| extend country = tostring(parse_json(GeoIPInfo).country);
+LargeSyncOperations
+| join kind=inner (SigninLogs | where TimeGenerated > startofday(ago(TimeFrame)) | project ResultType, UserPrincipalName, IPAddress | summarize TotalSuccess = countif(ResultType == 0), TotalFailed = countif(ResultType != 0) by UserPrincipalName, IPAddress) on $left.Client_IPAddress == $right.IPAddress, $left.UserId == $right.UserPrincipalName
+// Filter only on IPs with low successrate 
+| where TotalSuccess <= MaxSuccess

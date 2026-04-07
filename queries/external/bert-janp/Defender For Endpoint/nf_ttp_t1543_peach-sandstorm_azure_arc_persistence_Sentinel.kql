@@ -1,0 +1,5 @@
+// Unexpected installation of azure arc agent - filepaths
+let AzureArcServicePaths = datatable(name:string)[@"\\AzureConnectedMachineAgent\\GCArcService\\GC"];
+DeviceFileEvents
+| where ActionType =~ "FileCreated"
+| where FolderPath  has_any (AzureArcServicePaths)

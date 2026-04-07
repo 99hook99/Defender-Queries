@@ -1,0 +1,8 @@
+let Timeframe = 1d; // Choose the best timeframe for your investigation
+let fwcommands = dynamic([@"advfirewall", @"firewall", @"add rule", @"dir=in", @"localport=3389", @"action=allow"]);
+DeviceProcessEvents
+| where Timestamp > ago(Timeframe)
+| where FileName has @"netsh.exe"
+| where ProcessCommandLine has_all (fwcommands)
+| where ActionType has "ProcessCreated"
+| project DeviceId, DeviceName, ProcessCommandLine

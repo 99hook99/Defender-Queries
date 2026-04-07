@@ -1,0 +1,9 @@
+// Tenant External Recipient Rate Limit or TERR
+// https://techcommunity.microsoft.com/blog/exchange/introducing-exchange-online-tenant-outbound-email-limits/4372797
+
+EmailEvents
+| where Timestamp > ago(30d)
+| where EmailDirection == "Outbound"
+| summarize OutboundEmailVol=count() by bin(Timestamp,1d)
+| sort by OutboundEmailVol desc 
+

@@ -1,0 +1,40 @@
+// Detect privilege escalation to The Most Dangerous Entra Admin Role via compromised service principal
+// https://www.linkedin.com/posts/activity-7223370832763351040-TieO/
+
+// Hourly Sentinel Analytics Rule:
+
+let PTS = dynamic(['PTS1@acme.com', 'PTS2@acme.com', 'PTS3@acme.com']);
+AuditLogs 
+| where TimeGenerated > ago(1h)
+| where Category == "RoleManagement"
+| where ActivityDisplayName == "Add member to role"
+| where TargetResources contains "Partner Tier2 Support"
+| extend UPN = tostring(TargetResources[0].userPrincipalName)
+| where not (UPN has_any(PTS))
+
+// Custom DefenderXDR KQL (Exposure Management) detecting this dangerous role activation: 
+
+let DangerousAdmin =
+ExposureGraphNodes
+| where set_has_element(Categories, "identity")
+| extend AccountUPN = NodeProperties.rawData.accountUpn
+| extend AdminRoles = NodeProperties.rawData.assignedRoles
+| where AdminRoles contains "Partner Tier2 Support"
+| project AccountUPN;
+IdentityLogonEvents
+| where AccountUpn has_any(DangerousAdmin)
+
+// MITRE ATT&CK Mapping
+
+// T1078 - Valid Accounts:
+// Description: Adversaries may use valid accounts to gain access to and maintain persistence on systems.
+// Relevance: The query detects the addition of members to a high-privilege role, which could indicate the use of valid accounts for privilege escalation.
+// T1098 - Account Manipulation:
+// Description: Adversaries may manipulate accounts to maintain access to credentials and permissions.
+// Relevance: The detection of adding members to a role aligns with account manipulation activities.
+// T1071 - Application Layer Protocol:
+// Description: Adversaries may use application layer protocols to communicate with remote systems.
+// Relevance: The logon events detection part of the query can help identify suspicious logon activities using valid accounts.
+// T1110 - Brute Force:
+// Description: Adversaries may use brute force techniques to attempt to gain access to accounts.
+// Relevance: Although not directly related to brute force, monitoring logon events for high-privilege accounts can help detect potential brute force attempts.

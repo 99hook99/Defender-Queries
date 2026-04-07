@@ -1,0 +1,4 @@
+DeviceProcessEvents
+| extend ProcessCommandLineToLower =  tolower(ProcessCommandLine)
+| where ProcessCommandLineToLower has "wevtutil.exe" and ProcessCommandLineToLower has_any ("cl", "clear-log")
+| project-reorder Timestamp, DeviceName, AccountSid, ProcessCommandLine, InitiatingProcessCommandLine

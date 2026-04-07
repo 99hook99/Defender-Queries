@@ -1,0 +1,15 @@
+let DatabasePorts = dynamic([1433, 1434, 1583, 3050, 3306, 3351, 5432]);
+// Device List with devices that perform benign connections to SQL machines
+let BenignDeviceList = dynamic(['DeviceName1']);
+// Threshold for the amount of unique connections
+let AlertThreshold = 10;
+DeviceNetworkEvents
+| where ingestion_time() > ago(24h)
+// Filter Database ports
+| where RemotePort in (DatabasePorts)
+// Filter Benign Devices
+| where not(DeviceName in~(BenignDeviceList))
+// Summarize results and get statistics
+| summarize TotalIPsAccessed = dcount(RemoteIP), IPList = make_set(RemoteIP), PortList =  make_set(RemotePort), arg_max(TimeGenerated, *) by DeviceId, bin(TimeGenerated, 1h)
+| where TotalIPsAccessed >= AlertThreshold
+| project DeviceName, TimeGenerated, TotalIPsAccessed, IPList, PortList

@@ -1,0 +1,6 @@
+CloudAppEvents
+| where Timestamp > ago(30d)
+| where ActionType == "IsolateDevice"
+| extend IsolatedDevice = tostring(parse_json(RawEventData).DeviceName), IsolationComment = tostring(parse_json(RawEventData).ActionComment), IsolationScope = tostring(parse_json(RawEventData).ActionScope)
+| project-rename InitiatedByAccountName = AccountDisplayName, InitiatedByAccounttId = AccountId
+|project-reorder Timestamp, IsolatedDevice, IsolationComment, IsolationScope, InitiatedByAccountName, InitiatedByAccounttId

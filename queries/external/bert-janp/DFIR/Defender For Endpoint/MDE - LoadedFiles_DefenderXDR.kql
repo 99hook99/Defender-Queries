@@ -1,0 +1,6 @@
+let InputSHA1 = "035833d4d9673fd767b3a73e5943abe0cb88b122";
+let LoadedFiles = DeviceImageLoadEvents
+| where InitiatingProcessSHA1 =~ InputSHA1
+| summarize LoadedFiles = make_set(SHA1);
+union DeviceNetworkEvents, DeviceProcessEvents, DeviceEvents
+| where InitiatingProcessSHA1 in~ (InputSHA1)

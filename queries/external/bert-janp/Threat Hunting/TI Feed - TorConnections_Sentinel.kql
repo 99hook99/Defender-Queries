@@ -1,0 +1,7 @@
+let TorNodes = externaldata(IP:string )[@"https://www.dan.me.uk/Torlist/?full"] with (format="txt", ignoreFirstRecord=False);
+let IPs = TorNodes
+ | distinct IP;
+DeviceNetworkEvents
+| where ActionType == "ConnectionSuccess"
+| where RemoteIP in (IPs)
+| project-reorder TimeGenerated, DeviceName, RemoteIP, InitiatingProcessAccountName,InitiatingProcessCommandLine

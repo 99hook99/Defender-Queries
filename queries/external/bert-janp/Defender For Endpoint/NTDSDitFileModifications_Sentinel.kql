@@ -1,0 +1,5 @@
+// Author: Alex Teixeira (alex@opstune.com)
+search in(DeviceFileEvents) "ntds" and "dit" and ActionType:"FileModified"
+| where TimeGenerated > ago(90d)
+| summarize Device_Count=dcount(DeviceId), Device_Sample=take_any(DeviceName), File_Count=dcount(FolderPath), File_Sample=take_any(FolderPath), Last_Seen=max(Timestamp) by InitiatingProcessParentFileName, InitiatingProcessFolderPath, InitiatingProcessAccountName
+| sort by Device_Count desc, File_Count desc

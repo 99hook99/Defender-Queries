@@ -1,0 +1,29 @@
+// Hunting AI Recall on Windows 11 24H2
+// https://www.linkedin.com/posts/activity-7204333401787572226-jFYe/
+
+// The Windows 11 AI Recall feature, which has sparked considerable debate since its introduction by Microsoft on May 20th, operates on ARM CPU architecture. Despite the security community’s concerns, Microsoft has yet to provide comprehensive explanations. Meanwhile, this feature is now accessible in the Windows 11 24H2 update as a preview. For SecOps, particularly within large organizations, it’s crucial to track whether this function is being activated on corporate endpoints, considering the potential risks highlighted in the shared articles. Below is a KQL hunting query designed for security analysts to detect any activations of the Windows 11 recall function within your corporate network, assuming the use of Microsoft Defender for Endpoint. 
+
+let Windows11_24H2 =
+DeviceInfo
+| where OSPlatform == "Windows11" and OSVersionInfo == "24H2"
+| project DeviceName;
+DeviceFileEvents
+| where FolderPath contains "CoreAIPlatform"
+| where DeviceName has_any(Windows11_24H2)
+
+// MITRE ATT&CK Mapping
+
+// Based on the KQL code, the following MITRE ATT&CK techniques are relevant:
+
+// T1071.001 - Application Layer Protocol: Web Protocols:
+// Description: This technique involves using web protocols for command and control.
+// Relevance: If “CoreAIPlatform” involves web-based interactions, monitoring file events in this folder could help detect suspicious activities.
+// T1083 - File and Directory Discovery:
+// Description: Adversaries may search for files and directories to find information.
+// Relevance: Filtering file events in specific folders can help detect unauthorized access or discovery activities.
+// T1566.001 - Phishing: Spearphishing Attachment:
+// Description: Adversaries may send spearphishing emails with malicious attachments.
+// Relevance: If “CoreAIPlatform” is a target for spearphishing, monitoring file events can help detect such attempts.
+// T1078 - Valid Accounts:
+// Description: Adversaries may use valid accounts to maintain access.
+// Relevance: Monitoring file events on specific devices can help detect unauthorized use of valid accounts.

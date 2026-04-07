@@ -1,0 +1,3 @@
+search "laptop-01.domain.tld"
+| where TimeGenerated > ago(90d)
+| summarize TotalEvents = count() by Type

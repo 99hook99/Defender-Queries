@@ -1,0 +1,6 @@
+MicrosoftGraphActivityLogs
+| where RequestUri has "runHuntingQuery"
+// Only list app based results
+| where isnotempty(AppId)
+| where ResponseStatusCode == 200
+| project TimeGenerated, RequestUri, AppId, ResponseStatusCode, ResponseSizeBytes

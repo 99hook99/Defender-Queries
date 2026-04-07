@@ -6,21 +6,38 @@
 #   name        Display name
 #   repo        GitHub owner/repo
 #   slug        Local folder name under queries/external/
-#   platform    List of supported platforms (MDE, Sentinel, XDR, ...)
+#   platform    List of supported platforms (MDE, Sentinel, DefenderXDR, ...)
 #   file_type   kql (default) | markdown (KQL extracted from ```KQL blocks in .md files)
 #   description Short description shown in README
 #
-# Groups are free-form labels used for organisation in README (community, microsoft, vendor, ...).
+# Groups are free-form labels used for organisation in README.
+# Products: Azure, DefenderXDR, Sentinel, MDE, ADX, Office365, Identity, ...
 
 sources:
 
   community:
+
     - name: "Bert-JanP Hunting Queries"
       repo: "Bert-JanP/Hunting-Queries-Detection-Rules"
       slug: "bert-janp"
       platform: [MDE, Sentinel, DefenderXDR]
       file_type: markdown
-      description: "Large collection of hunting queries and detection rules (MD format)"
+      description: "Large collection of hunting queries and detection rules across Azure AD, MDE, Sentinel and XDR"
+
+    - name: "cyb3rmik3 KQL Threat Hunting"
+      repo: "cyb3rmik3/KQL-threat-hunting-queries"
+      slug: "cyb3rmik3"
+      platform: [MDE, Sentinel, DefenderXDR, Azure]
+      file_type: markdown
+      code_fence: any
+      description: "Threat hunting and detection queries organized by product: Azure, MDE, Sentinel, Office365, EASM, MDVM"
+
+    - name: "SlimKQL Hunting Queries"
+      repo: "SlimKQL/Hunting-Queries-Detection-Rules"
+      slug: "slimkql"
+      platform: [Sentinel, DefenderXDR, Azure, ADX]
+      file_type: kql
+      description: "Standalone KQL files organized by product: Azure, DefenderXDR, Sentinel, ADX — includes IOC lists"
 
     - name: "KQL Cafe – KustoCon"
       repo: "KQLCafe/kustocon"

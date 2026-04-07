@@ -1,0 +1,15 @@
+let rdpcommands = dynamic([@"fDenyTSConnections", @"REG_DWORD /d 0"]);
+DeviceProcessEvents
+| where FileName has @"reg.exe"
+| where ProcessCommandLine has_all (rdpcommands)
+| project DeviceId, DeviceName, ProcessCommandLine, Start = Timestamp
+| join kind = inner (DeviceRegistryEvents
+| where RegistryKey == @"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Terminal Server"
+| where RegistryValueName == @"fDenyTSConnections"
+| where ActionType == @"RegistryValueSet"
+| where RegistryValueData == @"0"
+| where InitiatingProcessFileName == @"reg.exe"
+| project DeviceId, End = Timestamp)
+on DeviceId
+| where (End - Start) between (0min .. 1min)
+| project Start, DeviceId, DeviceName, ProcessCommandLine

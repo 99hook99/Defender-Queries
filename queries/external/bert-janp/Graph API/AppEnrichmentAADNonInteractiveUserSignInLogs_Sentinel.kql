@@ -1,0 +1,9 @@
+let ApplicationName = AADNonInteractiveUserSignInLogs
+| where TimeGenerated > ago(30d)
+| summarize arg_max(TimeGenerated, *) by ResourceIdentity
+| project-rename ApplicationName = ResourceDisplayName
+| distinct ApplicationName, ResourceIdentity;
+MicrosoftGraphActivityLogs
+// Your filter here
+| lookup kind=leftouter ApplicationName on $left.AppId == $right.ResourceIdentity
+| project-reorder AppId, ApplicationName

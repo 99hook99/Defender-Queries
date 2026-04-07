@@ -1,0 +1,10 @@
+DeviceProcessEvents
+// Define the time you are interested to look into
+| where Timestamp > ago(1d)
+| where InitiatingProcessParentFileName contains @"wscript.exe"
+// Command line includes VBS file execution
+| where InitiatingProcessCommandLine contains ".vbs"
+// Invoking PowerShell or Command Line
+| where InitiatingProcessFileName has_any (@"powershell.exe", @"pwsh.exe", @"powershell_ise.exe", @"cmd.exe")
+// Define elements that should be available in the results
+| project Timestamp, DeviceName, AccountName, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessParentFileName

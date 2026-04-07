@@ -1,0 +1,9 @@
+DeviceEvents
+| where ActionType == "AntivirusScanCompleted"
+| summarize arg_max(TimeGenerated, *) by DeviceId
+| extend ScanType = tostring(parse_json(AdditionalFields).ScanTypeIndex), 
+    DaysAgo = datetime_diff('day', now(), Timestamp)
+| project DeviceName, ActionType, ScanType, DaysAgo
+// Filter only devices that have not performed a antivirus scan in the last day
+| where DaysAgo > 0
+| sort by DaysAgo

@@ -111,7 +111,8 @@ _PLATFORM_ALIASES: dict[str, str] = {
     "log analytics":         "LogAnalytics",
 }
 
-_CODE_BLOCK_RE = re.compile(r"```(?:kql|KQL)\s*\n(.*?)```", re.DOTALL)
+_CODE_BLOCK_KQL_RE = re.compile(r"```(?:kql|KQL|kusto|Kusto)\s*\n(.*?)```", re.DOTALL)
+_CODE_BLOCK_ANY_RE = re.compile(r"```\w*\s*\n(.*?)```", re.DOTALL)
 _HEADING_RE = re.compile(r"^#{1,4}\s+(.+)$", re.MULTILINE)
 
 
@@ -120,12 +121,13 @@ def _platform_from_heading(heading: str) -> str:
     return _PLATFORM_ALIASES.get(heading.strip().lower(), "General")
 
 
-def extract_kql_blocks(md_content: str) -> list[tuple[str, str]]:
+def extract_kql_blocks(md_content: str, code_fence: str = "kql") -> list[tuple[str, str]]:
     """
     Parse a markdown file and return a list of (platform, kql_code) tuples.
     Each ```KQL block is attributed to the nearest preceding heading.
     """
     results: list[tuple[str, str]] = []
+    block_re = _CODE_BLOCK_ANY_RE if code_fence == "any" else _CODE_BLOCK_KQL_RE
 
     # Split into segments between headings
     headings = list(_HEADING_RE.finditer(md_content))
@@ -138,14 +140,14 @@ def extract_kql_blocks(md_content: str) -> list[tuple[str, str]]:
 
     if not slices:
         # No headings — grab all KQL blocks as "General"
-        for block in _CODE_BLOCK_RE.finditer(md_content):
+        for block in block_re.finditer(md_content):
             results.append(("General", block.group(1).strip()))
         return results
 
     for start, end, heading in slices:
         platform = _platform_from_heading(heading)
         segment = md_content[start:end]
-        for block in _CODE_BLOCK_RE.finditer(segment):
+        for block in block_re.finditer(segment):
             results.append((platform, block.group(1).strip()))
 
     return results
@@ -176,6 +178,7 @@ def sync_source(source: dict, manifest: dict, dry_run: bool) -> list[dict]:
     repo = source["repo"]
     slug = source.get("slug", repo.split("/")[1].lower())
     file_type = source.get("file_type", "kql")
+    code_fence = source.get("code_fence", "kql")
     source_dir = QUERIES_DIR / "external" / slug
 
     print(f"  [{source['name']}] fetching tree…")
@@ -219,7 +222,7 @@ def sync_source(source: dict, manifest: dict, dry_run: bool) -> list[dict]:
         now = datetime.now(timezone.utc).isoformat()
 
         if file_type == "markdown":
-            blocks = extract_kql_blocks(raw_content)
+            blocks = extract_kql_blocks(raw_content, code_fence=code_fence)
             if not blocks:
                 continue
 

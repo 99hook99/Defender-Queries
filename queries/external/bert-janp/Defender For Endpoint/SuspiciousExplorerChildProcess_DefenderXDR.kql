@@ -1,0 +1,7 @@
+let Parameters = dynamic(['http', 'https', 'Encoded', 'EncodedCommand', '-e', '-eC', '-enc', "-w", "://"]);
+let SuspiciousChildProcesses = dynamic(['cmd.exe', 'powershell.exe', 'bash.exe', 'csscript.exe', 'mshta.exe', 'msiexec.exe', 'rundll32.exe']);
+DeviceProcessEvents
+| where InitiatingProcessFileName =~ "explorer.exe" or InitiatingProcessVersionInfoOriginalFileName =~ "explorer.exe"
+| where FileName in~ (SuspiciousChildProcesses) or ProcessVersionInfoOriginalFileName in~ (SuspiciousChildProcesses)
+| where ProcessCommandLine has_any (Parameters)
+| project-reorder Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessCommandLine, AccountUpn, ProcessVersionInfoOriginalFileName

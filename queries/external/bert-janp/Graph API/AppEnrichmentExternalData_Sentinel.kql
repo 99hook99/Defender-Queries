@@ -1,0 +1,6 @@
+let ApplicationInformation = externaldata (ApplicationName: string, AppId: string, Reference: string ) [h"https://raw.githubusercontent.com/Beercow/Azure-App-IDs/master/Azure_Application_IDs.csv"] with (ignoreFirstRecord=true, format="csv");
+MicrosoftGraphActivityLogs
+// Your filter here
+| take 1000
+| lookup kind=leftouter ApplicationInformation on $left.AppId == $right.AppId
+| project-reorder AppId, ApplicationName

@@ -1,0 +1,7 @@
+let exclusions = dynamic(["-" , "0x0"]);
+SecurityEvent
+| where TimeGenerated > ago(30d)
+| where EventData contains "AllowedToDelegateTo"
+| extend AllData = tostring(parse_xml(EventData))
+| extend DelegatedTo = parse_json(AllData)['EventData']['Data'][20]["#text"]
+| where not (DelegatedTo in (exclusions))

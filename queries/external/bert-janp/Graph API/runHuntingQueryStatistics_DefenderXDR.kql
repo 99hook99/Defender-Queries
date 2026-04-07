@@ -1,0 +1,5 @@
+MicrosoftGraphActivityLogs
+| where RequestUri has "runHuntingQuery"
+| extend ObjectId = coalesce(UserId, AppId)
+| extend ObjectType = iff(isempty(AppId), "User", "Application")
+| summarize TotalCalls = count() by ObjectId, ObjectType

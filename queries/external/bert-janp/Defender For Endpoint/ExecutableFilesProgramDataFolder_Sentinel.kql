@@ -1,0 +1,10 @@
+// The start of the folderpath in the Public directory.
+let ProgramDataFolder = @'C:\Users\Public';
+// List with Executable File Extensions, can be adjusted or changed.
+let ExecutableFileExtensions = dynamic(['bat', 'cmd', 'com', 'cpl', 'ex', 'exe', 'jse', 'msc', 'ps1', 'reg', 'vb', 'vbe', 'ws', 'wsf', 'hta']);
+DeviceFileEvents
+| where FolderPath contains ProgramDataFolder
+// Extract File Extension from the filename.
+| extend FileExtension = tostring(extract(@'.*\.(.*)', 1, FileName))
+// Only list Files that are executable
+| where FileExtension in~ (ExecutableFileExtensions)

@@ -1,0 +1,13 @@
+DeviceEvents
+| where TimeGenerated > ago(30d)
+| where ActionType startswith "SmartScreen"
+| extend SmartScreenTrigger = iff(ActionType == "SmartScreenUrlWarning", 
+RemoteUrl, FileName)
+| extend ReasonForTrigger = parse_json(AdditionalFields).Experience
+| project
+     TimeGenerated,
+     DeviceName,
+     ActionType,
+     SmartScreenTrigger,
+     ReasonForTrigger,
+     InitiatingProcessCommandLine

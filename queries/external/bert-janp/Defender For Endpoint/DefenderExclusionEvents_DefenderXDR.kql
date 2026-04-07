@@ -1,0 +1,8 @@
+let ExclusionOptions = dynamic(['ExclusionPath', 'ExclusionExtension', 'ExclusionProcess', 'ExclusionIpAddress']);
+let Modules = dynamic(['Add-MpPreference','Set-MpPreference']);
+let CommandLineExecutions = DeviceProcessEvents
+    | where ProcessCommandLine has_any (Modules) and ProcessCommandLine has_any (ExclusionOptions);
+let PowerShellExecutions = DeviceEvents
+    | where ActionType == 'PowerShellCommand' 
+    | where AdditionalFields  has_any (Modules) and AdditionalFields has_any (ExclusionOptions);
+union PowerShellExecutions, CommandLineExecutions

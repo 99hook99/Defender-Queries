@@ -1,0 +1,51 @@
+let StartTime = 30d;
+let RareThresholdNetActionType = 10; // Determine how rare a command must be to be included in the results
+let RareNetParameters = DeviceProcessEvents
+    | where Timestamp > startofday(ago(StartTime))
+    | where FileName in ("net.exe", "net1.exe")
+    | extend NetActionType = case(ProcessCommandLine has "accounts", "ACCOUNTS", 
+        ProcessCommandLine has "computer", "COMPUTER", 
+        ProcessCommandLine has "config", "CONFIG", 
+        ProcessCommandLine has "continue", "CONTINUE", 
+        ProcessCommandLine has "file", "FILE", 
+        ProcessCommandLine has "group", "GROUP", 
+        ProcessCommandLine has "help", "HELP", 
+        ProcessCommandLine has "helpmsg", "HELPMSG", 
+        ProcessCommandLine has "localgroup", "LOCALGROUP", 
+        ProcessCommandLine has "pause", "PAUSE", 
+        ProcessCommandLine has "session", "SESSION", 
+        ProcessCommandLine has "share", "SHARE", 
+        ProcessCommandLine has "start", "START", 
+        ProcessCommandLine has "statistics", "STATISTICS", 
+        ProcessCommandLine has "stop", "STOP", 
+        ProcessCommandLine has "time", "TIME", 
+        ProcessCommandLine has "use", "USE", 
+        ProcessCommandLine has "user", "USER", 
+        ProcessCommandLine has "view", "VIEW", "Else")
+    | summarize TotalCommands = count() by NetActionType
+    | where TotalCommands <= RareThresholdNetActionType
+    | distinct NetActionType;
+DeviceProcessEvents
+| where Timestamp > startofday(ago(StartTime))
+| where FileName in ("net.exe", "net1.exe")
+| extend NetActionType = case(ProcessCommandLine has "accounts", "ACCOUNTS", 
+        ProcessCommandLine has "computer", "COMPUTER", 
+        ProcessCommandLine has "config", "CONFIG", 
+        ProcessCommandLine has "continue", "CONTINUE", 
+        ProcessCommandLine has "file", "FILE", 
+        ProcessCommandLine has "group", "GROUP", 
+        ProcessCommandLine has "help", "HELP", 
+        ProcessCommandLine has "helpmsg", "HELPMSG", 
+        ProcessCommandLine has "localgroup", "LOCALGROUP", 
+        ProcessCommandLine has "pause", "PAUSE", 
+        ProcessCommandLine has "session", "SESSION", 
+        ProcessCommandLine has "share", "SHARE", 
+        ProcessCommandLine has "start", "START", 
+        ProcessCommandLine has "statistics", "STATISTICS", 
+        ProcessCommandLine has "stop", "STOP", 
+        ProcessCommandLine has "time", "TIME", 
+        ProcessCommandLine has "use", "USE", 
+        ProcessCommandLine has "user", "USER", 
+        ProcessCommandLine has "view", "VIEW", "Else")
+| where NetActionType in (RareNetParameters)
+| project-reorder Timestamp, AccountUpn, ProcessCommandLine

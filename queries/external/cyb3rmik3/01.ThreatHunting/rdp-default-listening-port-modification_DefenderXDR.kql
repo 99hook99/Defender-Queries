@@ -1,0 +1,8 @@
+let Timeframe = 1d; // Choose the best timeframe for your investigation
+DeviceRegistryEvents
+| where Timestamp > ago(Timeframe)
+| where RegistryKey == @"HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Terminal Server\WinStations\RDP-Tcp"
+| where RegistryValueName == @"PortNumber"
+| where RegistryValueData != @"3389"
+| where ActionType == @"RegistryValueSet"
+| project Timestamp, DeviceName, PreviousRegistryValueName, PreviousRegistryValueData, InitiatingProcessFileName

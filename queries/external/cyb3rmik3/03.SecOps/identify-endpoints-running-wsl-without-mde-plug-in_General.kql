@@ -1,0 +1,11 @@
+let WSLDevices = DeviceProcessEvents
+| where ActionType has "ProcessCreated"
+| where ProcessVersionInfoOriginalFileName has "wsl.exe"
+| where ProcessVersionInfoFileDescription has "Windows Subsystem for Linux"
+| project DeviceName;
+WSLDevices
+    | join kind=leftanti (DeviceTvmSoftwareInventory
+    | where SoftwareName has "microsoft_defender_for_endpoint_plug-in_for_wsl"
+    | project DeviceName
+) on DeviceName
+| distinct DeviceName

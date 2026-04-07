@@ -1,0 +1,841 @@
+// Please Note
+// Some of the queries are research and must be validated
+// This file contains multiple queries
+// Use, share as liked
+// Community builds a better world
+// DefenderBoys
+
+
+let detect_anomalous_spike_fl = (T:(*), numericColumnName:string, entityColumnName:string, scopeColumnName:string
+                            , timeColumnName:string, startTraining:datetime, startDetection:datetime, endDetection:datetime, minTrainingDaysThresh:int = 14
+                            , lowPercentileForQscore:real = 0.25, highPercentileForQscore:real = 0.9
+                            , minSlicesPerEntity:int = 20, zScoreThreshEntity:real = 3.0, qScoreThreshEntity:real = 2.0, minNumValueThreshEntity:long = 0
+                            , minSlicesPerScope:int = 20, zScoreThreshScope:real = 3.0, qScoreThreshScope:real = 2.0, minNumValueThreshScope:long = 0)
+{
+// pre-process the input data by adding standard column names and dividing to datasets
+let timePeriodBinSize = 'day';      // we assume a reasonable bin for time is day
+let processedData = (
+    T
+    | extend scope      = column_ifexists(scopeColumnName, '')
+    | extend entity     = column_ifexists(entityColumnName, '')
+    | extend numVec     = tolong(column_ifexists(numericColumnName, 0))
+    | extend sliceTime  = todatetime(column_ifexists(timeColumnName, ''))
+    | where isnotempty(scope) and isnotempty(sliceTime)
+    | extend dataSet = case((sliceTime >= startTraining and sliceTime < startDetection), 'trainSet'
+                           , sliceTime >= startDetection and sliceTime <= endDetection,  'detectSet'
+                                                                                       , 'other')
+    | where dataSet in ('trainSet', 'detectSet')
+);
+let aggregatedCandidateScopeData = (
+    processedData
+    | summarize firstSeenScope = min(sliceTime), lastSeenScope = max(sliceTime) by scope
+    | extend slicesInTrainingScope = datetime_diff(timePeriodBinSize, startDetection, firstSeenScope)
+    | where slicesInTrainingScope >= minTrainingDaysThresh and lastSeenScope >= startDetection
+);
+let entityModelData = (
+    processedData
+    | join kind = inner (aggregatedCandidateScopeData) on scope
+    | where dataSet == 'trainSet'
+    | summarize countSlicesEntity = dcount(sliceTime), avgNumEntity = avg(numVec), sdNumEntity = stdev(numVec)
+            , lowPrcNumEntity = percentile(numVec, lowPercentileForQscore), highPrcNumEntity = percentile(numVec, highPercentileForQscore)
+            , firstSeenEntity = min(sliceTime), lastSeenEntity = max(sliceTime)
+        by scope, entity
+    | extend slicesInTrainingEntity = datetime_diff(timePeriodBinSize, startDetection, firstSeenEntity)
+);
+let scopeModelData = (
+    processedData
+    | join kind = inner (aggregatedCandidateScopeData) on scope
+    | where dataSet == 'trainSet'
+    | summarize countSlicesScope = dcount(sliceTime), avgNumScope = avg(numVec), sdNumScope = stdev(numVec)
+            , lowPrcNumScope = percentile(numVec, lowPercentileForQscore), highPrcNumScope = percentile(numVec, highPercentileForQscore)
+        by scope
+);
+let resultsData = (
+    processedData
+    | where dataSet == 'detectSet'
+    | join kind = inner (aggregatedCandidateScopeData) on scope 
+    | join kind = leftouter (entityModelData) on scope, entity 
+    | join kind = leftouter (scopeModelData) on scope
+    | extend zScoreEntity       = iff(countSlicesEntity >= minSlicesPerEntity, round((toreal(numVec) - avgNumEntity)/(sdNumEntity + 1), 2), 0.0)
+            , qScoreEntity      = iff(countSlicesEntity >= minSlicesPerEntity, round((toreal(numVec) - highPrcNumEntity)/(highPrcNumEntity - lowPrcNumEntity + 1), 2), 0.0)
+            , zScoreScope       = iff(countSlicesScope >= minSlicesPerScope, round((toreal(numVec) - avgNumScope)/(sdNumScope + 1), 2), 0.0)
+            , qScoreScope       = iff(countSlicesScope >= minSlicesPerScope, round((toreal(numVec) - highPrcNumScope)/(highPrcNumScope - lowPrcNumScope + 1), 2), 0.0)
+    | extend isSpikeOnEntity    = iff((slicesInTrainingEntity >= minTrainingDaysThresh and zScoreEntity > zScoreThreshEntity and qScoreEntity > qScoreThreshEntity and numVec >= minNumValueThreshEntity), 1, 0)
+            , entityHighBaseline= round(max_of((avgNumEntity + sdNumEntity), highPrcNumEntity), 2)
+            , isSpikeOnScope    = iff((countSlicesScope >= minTrainingDaysThresh and zScoreScope > zScoreThreshScope and qScoreScope > qScoreThreshScope and numVec >= minNumValueThreshScope), 1, 0)
+            , scopeHighBaseline = round(max_of((avgNumEntity + 2 * sdNumEntity), highPrcNumScope), 2)
+    | extend entitySpikeAnomalyScore = iff(isSpikeOnEntity  == 1, round(1.0 - 0.25/(max_of(zScoreEntity, qScoreEntity)),4), 0.00)
+            , scopeSpikeAnomalyScore = iff(isSpikeOnScope == 1, round(1.0 - 0.25/(max_of(zScoreScope, qScoreScope)), 4), 0.00)
+    | where isSpikeOnEntity == 1 or isSpikeOnScope == 1
+    | extend avgNumEntity   = round(avgNumEntity, 2), sdNumEntity = round(sdNumEntity, 2)
+            , avgNumScope   = round(avgNumScope, 2), sdNumScope = round(sdNumScope, 2)
+   | project-away entity1, scope1, scope2, scope3
+   | extend anomalyType = iff(isSpikeOnEntity == 1, strcat('spike_', entityColumnName), strcat('spike_', scopeColumnName)), anomalyScore = max_of(entitySpikeAnomalyScore, scopeSpikeAnomalyScore)
+   | extend anomalyExplainability = iff(isSpikeOnEntity == 1
+        , strcat('The value of numeric variable ', numericColumnName, ' for ', entityColumnName, ' ', entity, ' is ', numVec, ', which is abnormally high for this '
+            , entityColumnName, ' at this ', scopeColumnName
+            , '. Based on observations from last ' , slicesInTrainingEntity, ' ', timePeriodBinSize, 's, the expected baseline value is below ', entityHighBaseline, '.')
+        , strcat('The value of numeric variable ', numericColumnName, ' on ', scopeColumnName, ' ', scope, ' is ', numVec, ', which is abnormally high for this '
+            , scopeColumnName, '. Based on observations from last ' , slicesInTrainingScope, ' ', timePeriodBinSize, 's, the expected baseline value is below ', scopeHighBaseline, '.'))
+   | extend anomalyState = iff(isSpikeOnEntity == 1
+        , bag_pack('avg', avgNumEntity, 'stdev', sdNumEntity, strcat('percentile_', lowPercentileForQscore), lowPrcNumEntity, strcat('percentile_', highPercentileForQscore), highPrcNumEntity)
+        , bag_pack('avg', avgNumScope, 'stdev', sdNumScope, strcat('percentile_', lowPercentileForQscore), lowPrcNumScope, strcat('percentile_', highPercentileForQscore), highPrcNumScope))
+   | project-away lowPrcNumEntity, highPrcNumEntity, lowPrcNumScope, highPrcNumScope
+);
+resultsData
+};
+let detectPeriodStart   	= now(-7d);
+let trainPeriodStart    	= now(-30d);
+let DAs = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct tostring(json.accountName);
+let AnalysisSet =
+DeviceLogonEvents
+| where Timestamp >= startofday(now(-30d))
+| where AccountName has_any (DAs)
+| summarize countEvents=count() by AccountName, ActionType, bin(Timestamp,1d)
+| project-rename timeSlice=Timestamp;
+AnalysisSet
+| invoke detect_anomalous_spike_fl(numericColumnName        = 'countEvents'
+                                , entityColumnName          = 'AccountName'
+                                , scopeColumnName           = 'ActionType'
+                                , timeColumnName            = 'timeSlice'
+                                , startTraining             = trainPeriodStart
+                                , startDetection            = detectPeriodStart
+                                , endDetection              = now()
+                            )
+
+let detect_anomalous_spike_fl = (T:(*), numericColumnName:string, entityColumnName:string, scopeColumnName:string
+                            , timeColumnName:string, startTraining:datetime, startDetection:datetime, endDetection:datetime, minTrainingDaysThresh:int = 14
+                            , lowPercentileForQscore:real = 0.25, highPercentileForQscore:real = 0.9
+                            , minSlicesPerEntity:int = 20, zScoreThreshEntity:real = 3.0, qScoreThreshEntity:real = 2.0, minNumValueThreshEntity:long = 0
+                            , minSlicesPerScope:int = 20, zScoreThreshScope:real = 3.0, qScoreThreshScope:real = 2.0, minNumValueThreshScope:long = 0)
+{
+// pre-process the input data by adding standard column names and dividing to datasets
+let timePeriodBinSize = 'day';      // we assume a reasonable bin for time is day
+let processedData = (
+    T
+    | extend scope      = column_ifexists(scopeColumnName, '')
+    | extend entity     = column_ifexists(entityColumnName, '')
+    | extend numVec     = tolong(column_ifexists(numericColumnName, 0))
+    | extend sliceTime  = todatetime(column_ifexists(timeColumnName, ''))
+    | where isnotempty(scope) and isnotempty(sliceTime)
+    | extend dataSet = case((sliceTime >= startTraining and sliceTime < startDetection), 'trainSet'
+                           , sliceTime >= startDetection and sliceTime <= endDetection,  'detectSet'
+                                                                                       , 'other')
+    | where dataSet in ('trainSet', 'detectSet')
+);
+let aggregatedCandidateScopeData = (
+    processedData
+    | summarize firstSeenScope = min(sliceTime), lastSeenScope = max(sliceTime) by scope
+    | extend slicesInTrainingScope = datetime_diff(timePeriodBinSize, startDetection, firstSeenScope)
+    | where slicesInTrainingScope >= minTrainingDaysThresh and lastSeenScope >= startDetection
+);
+let entityModelData = (
+    processedData
+    | join kind = inner (aggregatedCandidateScopeData) on scope
+    | where dataSet == 'trainSet'
+    | summarize countSlicesEntity = dcount(sliceTime), avgNumEntity = avg(numVec), sdNumEntity = stdev(numVec)
+            , lowPrcNumEntity = percentile(numVec, lowPercentileForQscore), highPrcNumEntity = percentile(numVec, highPercentileForQscore)
+            , firstSeenEntity = min(sliceTime), lastSeenEntity = max(sliceTime)
+        by scope, entity
+    | extend slicesInTrainingEntity = datetime_diff(timePeriodBinSize, startDetection, firstSeenEntity)
+);
+let scopeModelData = (
+    processedData
+    | join kind = inner (aggregatedCandidateScopeData) on scope
+    | where dataSet == 'trainSet'
+    | summarize countSlicesScope = dcount(sliceTime), avgNumScope = avg(numVec), sdNumScope = stdev(numVec)
+            , lowPrcNumScope = percentile(numVec, lowPercentileForQscore), highPrcNumScope = percentile(numVec, highPercentileForQscore)
+        by scope
+);
+let resultsData = (
+    processedData
+    | where dataSet == 'detectSet'
+    | join kind = inner (aggregatedCandidateScopeData) on scope 
+    | join kind = leftouter (entityModelData) on scope, entity 
+    | join kind = leftouter (scopeModelData) on scope
+    | extend zScoreEntity       = iff(countSlicesEntity >= minSlicesPerEntity, round((toreal(numVec) - avgNumEntity)/(sdNumEntity + 1), 2), 0.0)
+            , qScoreEntity      = iff(countSlicesEntity >= minSlicesPerEntity, round((toreal(numVec) - highPrcNumEntity)/(highPrcNumEntity - lowPrcNumEntity + 1), 2), 0.0)
+            , zScoreScope       = iff(countSlicesScope >= minSlicesPerScope, round((toreal(numVec) - avgNumScope)/(sdNumScope + 1), 2), 0.0)
+            , qScoreScope       = iff(countSlicesScope >= minSlicesPerScope, round((toreal(numVec) - highPrcNumScope)/(highPrcNumScope - lowPrcNumScope + 1), 2), 0.0)
+    | extend isSpikeOnEntity    = iff((slicesInTrainingEntity >= minTrainingDaysThresh and zScoreEntity > zScoreThreshEntity and qScoreEntity > qScoreThreshEntity and numVec >= minNumValueThreshEntity), 1, 0)
+            , entityHighBaseline= round(max_of((avgNumEntity + sdNumEntity), highPrcNumEntity), 2)
+            , isSpikeOnScope    = iff((countSlicesScope >= minTrainingDaysThresh and zScoreScope > zScoreThreshScope and qScoreScope > qScoreThreshScope and numVec >= minNumValueThreshScope), 1, 0)
+            , scopeHighBaseline = round(max_of((avgNumEntity + 2 * sdNumEntity), highPrcNumScope), 2)
+    | extend entitySpikeAnomalyScore = iff(isSpikeOnEntity  == 1, round(1.0 - 0.25/(max_of(zScoreEntity, qScoreEntity)),4), 0.00)
+            , scopeSpikeAnomalyScore = iff(isSpikeOnScope == 1, round(1.0 - 0.25/(max_of(zScoreScope, qScoreScope)), 4), 0.00)
+    | where isSpikeOnEntity == 1 or isSpikeOnScope == 1
+    | extend avgNumEntity   = round(avgNumEntity, 2), sdNumEntity = round(sdNumEntity, 2)
+            , avgNumScope   = round(avgNumScope, 2), sdNumScope = round(sdNumScope, 2)
+   | project-away entity1, scope1, scope2, scope3
+   | extend anomalyType = iff(isSpikeOnEntity == 1, strcat('spike_', entityColumnName), strcat('spike_', scopeColumnName)), anomalyScore = max_of(entitySpikeAnomalyScore, scopeSpikeAnomalyScore)
+   | extend anomalyExplainability = iff(isSpikeOnEntity == 1
+        , strcat('The value of numeric variable ', numericColumnName, ' for ', entityColumnName, ' ', entity, ' is ', numVec, ', which is abnormally high for this '
+            , entityColumnName, ' at this ', scopeColumnName
+            , '. Based on observations from last ' , slicesInTrainingEntity, ' ', timePeriodBinSize, 's, the expected baseline value is below ', entityHighBaseline, '.')
+        , strcat('The value of numeric variable ', numericColumnName, ' on ', scopeColumnName, ' ', scope, ' is ', numVec, ', which is abnormally high for this '
+            , scopeColumnName, '. Based on observations from last ' , slicesInTrainingScope, ' ', timePeriodBinSize, 's, the expected baseline value is below ', scopeHighBaseline, '.'))
+   | extend anomalyState = iff(isSpikeOnEntity == 1
+        , bag_pack('avg', avgNumEntity, 'stdev', sdNumEntity, strcat('percentile_', lowPercentileForQscore), lowPrcNumEntity, strcat('percentile_', highPercentileForQscore), highPrcNumEntity)
+        , bag_pack('avg', avgNumScope, 'stdev', sdNumScope, strcat('percentile_', lowPercentileForQscore), lowPrcNumScope, strcat('percentile_', highPercentileForQscore), highPrcNumScope))
+   | project-away lowPrcNumEntity, highPrcNumEntity, lowPrcNumScope, highPrcNumScope
+);
+resultsData
+};
+let detectPeriodStart   	= now(-7d);
+let trainPeriodStart    	= now(-30d);
+let DAs = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct tostring(json.accountName);
+let AnalysisSet =
+DeviceLogonEvents
+| where Timestamp >= startofday(now(-30d))
+| where AccountName has_any (DAs)
+| summarize countEvents=count() by AccountName, ActionType, bin(Timestamp,1d)
+| project-rename timeSlice=Timestamp;
+AnalysisSet
+| invoke detect_anomalous_spike_fl(numericColumnName        = 'countEvents'
+                                , entityColumnName          = 'AccountName'
+                                , scopeColumnName           = 'ActionType'
+                                , timeColumnName            = 'timeSlice'
+                                , startTraining             = trainPeriodStart
+                                , startDetection            = detectPeriodStart
+                                , endDetection              = now()
+                            )
+
+
+let detect_anomalous_spike_fl = (T:(*), numericColumnName:string, entityColumnName:string, scopeColumnName:string
+                            , timeColumnName:string, startTraining:datetime, startDetection:datetime, endDetection:datetime, minTrainingDaysThresh:int = 14
+                            , lowPercentileForQscore:real = 0.25, highPercentileForQscore:real = 0.9
+                            , minSlicesPerEntity:int = 20, zScoreThreshEntity:real = 3.0, qScoreThreshEntity:real = 2.0, minNumValueThreshEntity:long = 0
+                            , minSlicesPerScope:int = 20, zScoreThreshScope:real = 3.0, qScoreThreshScope:real = 2.0, minNumValueThreshScope:long = 0)
+{
+// pre-process the input data by adding standard column names and dividing to datasets
+let timePeriodBinSize = 'day';      // we assume a reasonable bin for time is day
+let processedData = (
+    T
+    | extend scope      = column_ifexists(scopeColumnName, '')
+    | extend entity     = column_ifexists(entityColumnName, '')
+    | extend numVec     = tolong(column_ifexists(numericColumnName, 0))
+    | extend sliceTime  = todatetime(column_ifexists(timeColumnName, ''))
+    | where isnotempty(scope) and isnotempty(sliceTime)
+    | extend dataSet = case((sliceTime >= startTraining and sliceTime < startDetection), 'trainSet'
+                           , sliceTime >= startDetection and sliceTime <= endDetection,  'detectSet'
+                                                                                       , 'other')
+    | where dataSet in ('trainSet', 'detectSet')
+);
+let aggregatedCandidateScopeData = (
+    processedData
+    | summarize firstSeenScope = min(sliceTime), lastSeenScope = max(sliceTime) by scope
+    | extend slicesInTrainingScope = datetime_diff(timePeriodBinSize, startDetection, firstSeenScope)
+    | where slicesInTrainingScope >= minTrainingDaysThresh and lastSeenScope >= startDetection
+);
+let entityModelData = (
+    processedData
+    | join kind = inner (aggregatedCandidateScopeData) on scope
+    | where dataSet == 'trainSet'
+    | summarize countSlicesEntity = dcount(sliceTime), avgNumEntity = avg(numVec), sdNumEntity = stdev(numVec)
+            , lowPrcNumEntity = percentile(numVec, lowPercentileForQscore), highPrcNumEntity = percentile(numVec, highPercentileForQscore)
+            , firstSeenEntity = min(sliceTime), lastSeenEntity = max(sliceTime)
+        by scope, entity
+    | extend slicesInTrainingEntity = datetime_diff(timePeriodBinSize, startDetection, firstSeenEntity)
+);
+let scopeModelData = (
+    processedData
+    | join kind = inner (aggregatedCandidateScopeData) on scope
+    | where dataSet == 'trainSet'
+    | summarize countSlicesScope = dcount(sliceTime), avgNumScope = avg(numVec), sdNumScope = stdev(numVec)
+            , lowPrcNumScope = percentile(numVec, lowPercentileForQscore), highPrcNumScope = percentile(numVec, highPercentileForQscore)
+        by scope
+);
+let resultsData = (
+    processedData
+    | where dataSet == 'detectSet'
+    | join kind = inner (aggregatedCandidateScopeData) on scope 
+    | join kind = leftouter (entityModelData) on scope, entity 
+    | join kind = leftouter (scopeModelData) on scope
+    | extend zScoreEntity       = iff(countSlicesEntity >= minSlicesPerEntity, round((toreal(numVec) - avgNumEntity)/(sdNumEntity + 1), 2), 0.0)
+            , qScoreEntity      = iff(countSlicesEntity >= minSlicesPerEntity, round((toreal(numVec) - highPrcNumEntity)/(highPrcNumEntity - lowPrcNumEntity + 1), 2), 0.0)
+            , zScoreScope       = iff(countSlicesScope >= minSlicesPerScope, round((toreal(numVec) - avgNumScope)/(sdNumScope + 1), 2), 0.0)
+            , qScoreScope       = iff(countSlicesScope >= minSlicesPerScope, round((toreal(numVec) - highPrcNumScope)/(highPrcNumScope - lowPrcNumScope + 1), 2), 0.0)
+    | extend isSpikeOnEntity    = iff((slicesInTrainingEntity >= minTrainingDaysThresh and zScoreEntity > zScoreThreshEntity and qScoreEntity > qScoreThreshEntity and numVec >= minNumValueThreshEntity), 1, 0)
+            , entityHighBaseline= round(max_of((avgNumEntity + sdNumEntity), highPrcNumEntity), 2)
+            , isSpikeOnScope    = iff((countSlicesScope >= minTrainingDaysThresh and zScoreScope > zScoreThreshScope and qScoreScope > qScoreThreshScope and numVec >= minNumValueThreshScope), 1, 0)
+            , scopeHighBaseline = round(max_of((avgNumEntity + 2 * sdNumEntity), highPrcNumScope), 2)
+    | extend entitySpikeAnomalyScore = iff(isSpikeOnEntity  == 1, round(1.0 - 0.25/(max_of(zScoreEntity, qScoreEntity)),4), 0.00)
+            , scopeSpikeAnomalyScore = iff(isSpikeOnScope == 1, round(1.0 - 0.25/(max_of(zScoreScope, qScoreScope)), 4), 0.00)
+    | where isSpikeOnEntity == 1 or isSpikeOnScope == 1
+    | extend avgNumEntity   = round(avgNumEntity, 2), sdNumEntity = round(sdNumEntity, 2)
+            , avgNumScope   = round(avgNumScope, 2), sdNumScope = round(sdNumScope, 2)
+   | project-away entity1, scope1, scope2, scope3
+   | extend anomalyType = iff(isSpikeOnEntity == 1, strcat('spike_', entityColumnName), strcat('spike_', scopeColumnName)), anomalyScore = max_of(entitySpikeAnomalyScore, scopeSpikeAnomalyScore)
+   | extend anomalyExplainability = iff(isSpikeOnEntity == 1
+        , strcat('The value of numeric variable ', numericColumnName, ' for ', entityColumnName, ' ', entity, ' is ', numVec, ', which is abnormally high for this '
+            , entityColumnName, ' at this ', scopeColumnName
+            , '. Based on observations from last ' , slicesInTrainingEntity, ' ', timePeriodBinSize, 's, the expected baseline value is below ', entityHighBaseline, '.')
+        , strcat('The value of numeric variable ', numericColumnName, ' on ', scopeColumnName, ' ', scope, ' is ', numVec, ', which is abnormally high for this '
+            , scopeColumnName, '. Based on observations from last ' , slicesInTrainingScope, ' ', timePeriodBinSize, 's, the expected baseline value is below ', scopeHighBaseline, '.'))
+   | extend anomalyState = iff(isSpikeOnEntity == 1
+        , bag_pack('avg', avgNumEntity, 'stdev', sdNumEntity, strcat('percentile_', lowPercentileForQscore), lowPrcNumEntity, strcat('percentile_', highPercentileForQscore), highPrcNumEntity)
+        , bag_pack('avg', avgNumScope, 'stdev', sdNumScope, strcat('percentile_', lowPercentileForQscore), lowPrcNumScope, strcat('percentile_', highPercentileForQscore), highPrcNumScope))
+   | project-away lowPrcNumEntity, highPrcNumEntity, lowPrcNumScope, highPrcNumScope
+);
+resultsData
+};
+let detectPeriodStart   	= now(-7d);
+let trainPeriodStart    	= now(-30d);
+let DAs = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct tostring(json.accountName);
+let AnalysisSet =
+DeviceLogonEvents
+| where Timestamp >= startofday(now(-30d))
+| where AccountName has_any (DAs)
+| summarize countEvents=count() by AccountName, ActionType, bin(Timestamp,1d)
+| project-rename timeSlice=Timestamp;
+AnalysisSet
+| invoke detect_anomalous_spike_fl(numericColumnName        = 'countEvents'
+                                , entityColumnName          = 'AccountName'
+                                , scopeColumnName           = 'ActionType'
+                                , timeColumnName            = 'timeSlice'
+                                , startTraining             = trainPeriodStart
+                                , startDetection            = detectPeriodStart
+                                , endDetection              = now()
+                            )
+
+let detect_anomalous_spike_fl = (T:(*), numericColumnName:string, entityColumnName:string, scopeColumnName:string
+                            , timeColumnName:string, startTraining:datetime, startDetection:datetime, endDetection:datetime, minTrainingDaysThresh:int = 14
+                            , lowPercentileForQscore:real = 0.25, highPercentileForQscore:real = 0.9
+                            , minSlicesPerEntity:int = 20, zScoreThreshEntity:real = 3.0, qScoreThreshEntity:real = 2.0, minNumValueThreshEntity:long = 0
+                            , minSlicesPerScope:int = 20, zScoreThreshScope:real = 3.0, qScoreThreshScope:real = 2.0, minNumValueThreshScope:long = 0)
+{
+// pre-process the input data by adding standard column names and dividing to datasets
+let timePeriodBinSize = 'day';      // we assume a reasonable bin for time is day
+let processedData = (
+    T
+    | extend scope      = column_ifexists(scopeColumnName, '')
+    | extend entity     = column_ifexists(entityColumnName, '')
+    | extend numVec     = tolong(column_ifexists(numericColumnName, 0))
+    | extend sliceTime  = todatetime(column_ifexists(timeColumnName, ''))
+    | where isnotempty(scope) and isnotempty(sliceTime)
+    | extend dataSet = case((sliceTime >= startTraining and sliceTime < startDetection), 'trainSet'
+                           , sliceTime >= startDetection and sliceTime <= endDetection,  'detectSet'
+                                                                                       , 'other')
+    | where dataSet in ('trainSet', 'detectSet')
+);
+let aggregatedCandidateScopeData = (
+    processedData
+    | summarize firstSeenScope = min(sliceTime), lastSeenScope = max(sliceTime) by scope
+    | extend slicesInTrainingScope = datetime_diff(timePeriodBinSize, startDetection, firstSeenScope)
+    | where slicesInTrainingScope >= minTrainingDaysThresh and lastSeenScope >= startDetection
+);
+let entityModelData = (
+    processedData
+    | join kind = inner (aggregatedCandidateScopeData) on scope
+    | where dataSet == 'trainSet'
+    | summarize countSlicesEntity = dcount(sliceTime), avgNumEntity = avg(numVec), sdNumEntity = stdev(numVec)
+            , lowPrcNumEntity = percentile(numVec, lowPercentileForQscore), highPrcNumEntity = percentile(numVec, highPercentileForQscore)
+            , firstSeenEntity = min(sliceTime), lastSeenEntity = max(sliceTime)
+        by scope, entity
+    | extend slicesInTrainingEntity = datetime_diff(timePeriodBinSize, startDetection, firstSeenEntity)
+);
+let scopeModelData = (
+    processedData
+    | join kind = inner (aggregatedCandidateScopeData) on scope
+    | where dataSet == 'trainSet'
+    | summarize countSlicesScope = dcount(sliceTime), avgNumScope = avg(numVec), sdNumScope = stdev(numVec)
+            , lowPrcNumScope = percentile(numVec, lowPercentileForQscore), highPrcNumScope = percentile(numVec, highPercentileForQscore)
+        by scope
+);
+let resultsData = (
+    processedData
+    | where dataSet == 'detectSet'
+    | join kind = inner (aggregatedCandidateScopeData) on scope 
+    | join kind = leftouter (entityModelData) on scope, entity 
+    | join kind = leftouter (scopeModelData) on scope
+    | extend zScoreEntity       = iff(countSlicesEntity >= minSlicesPerEntity, round((toreal(numVec) - avgNumEntity)/(sdNumEntity + 1), 2), 0.0)
+            , qScoreEntity      = iff(countSlicesEntity >= minSlicesPerEntity, round((toreal(numVec) - highPrcNumEntity)/(highPrcNumEntity - lowPrcNumEntity + 1), 2), 0.0)
+            , zScoreScope       = iff(countSlicesScope >= minSlicesPerScope, round((toreal(numVec) - avgNumScope)/(sdNumScope + 1), 2), 0.0)
+            , qScoreScope       = iff(countSlicesScope >= minSlicesPerScope, round((toreal(numVec) - highPrcNumScope)/(highPrcNumScope - lowPrcNumScope + 1), 2), 0.0)
+    | extend isSpikeOnEntity    = iff((slicesInTrainingEntity >= minTrainingDaysThresh and zScoreEntity > zScoreThreshEntity and qScoreEntity > qScoreThreshEntity and numVec >= minNumValueThreshEntity), 1, 0)
+            , entityHighBaseline= round(max_of((avgNumEntity + sdNumEntity), highPrcNumEntity), 2)
+            , isSpikeOnScope    = iff((countSlicesScope >= minTrainingDaysThresh and zScoreScope > zScoreThreshScope and qScoreScope > qScoreThreshScope and numVec >= minNumValueThreshScope), 1, 0)
+            , scopeHighBaseline = round(max_of((avgNumEntity + 2 * sdNumEntity), highPrcNumScope), 2)
+    | extend entitySpikeAnomalyScore = iff(isSpikeOnEntity  == 1, round(1.0 - 0.25/(max_of(zScoreEntity, qScoreEntity)),4), 0.00)
+            , scopeSpikeAnomalyScore = iff(isSpikeOnScope == 1, round(1.0 - 0.25/(max_of(zScoreScope, qScoreScope)), 4), 0.00)
+    | where isSpikeOnEntity == 1 or isSpikeOnScope == 1
+    | extend avgNumEntity   = round(avgNumEntity, 2), sdNumEntity = round(sdNumEntity, 2)
+            , avgNumScope   = round(avgNumScope, 2), sdNumScope = round(sdNumScope, 2)
+   | project-away entity1, scope1, scope2, scope3
+   | extend anomalyType = iff(isSpikeOnEntity == 1, strcat('spike_', entityColumnName), strcat('spike_', scopeColumnName)), anomalyScore = max_of(entitySpikeAnomalyScore, scopeSpikeAnomalyScore)
+   | extend anomalyExplainability = iff(isSpikeOnEntity == 1
+        , strcat('The value of numeric variable ', numericColumnName, ' for ', entityColumnName, ' ', entity, ' is ', numVec, ', which is abnormally high for this '
+            , entityColumnName, ' at this ', scopeColumnName
+            , '. Based on observations from last ' , slicesInTrainingEntity, ' ', timePeriodBinSize, 's, the expected baseline value is below ', entityHighBaseline, '.')
+        , strcat('The value of numeric variable ', numericColumnName, ' on ', scopeColumnName, ' ', scope, ' is ', numVec, ', which is abnormally high for this '
+            , scopeColumnName, '. Based on observations from last ' , slicesInTrainingScope, ' ', timePeriodBinSize, 's, the expected baseline value is below ', scopeHighBaseline, '.'))
+   | extend anomalyState = iff(isSpikeOnEntity == 1
+        , bag_pack('avg', avgNumEntity, 'stdev', sdNumEntity, strcat('percentile_', lowPercentileForQscore), lowPrcNumEntity, strcat('percentile_', highPercentileForQscore), highPrcNumEntity)
+        , bag_pack('avg', avgNumScope, 'stdev', sdNumScope, strcat('percentile_', lowPercentileForQscore), lowPrcNumScope, strcat('percentile_', highPercentileForQscore), highPrcNumScope))
+   | project-away lowPrcNumEntity, highPrcNumEntity, lowPrcNumScope, highPrcNumScope
+);
+resultsData
+};
+let detectPeriodStart   	= now(-7d);
+let trainPeriodStart    	= now(-30d);
+let DAs = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct tostring(json.accountName);
+let AnalysisSet =
+DeviceLogonEvents
+| where Timestamp >= startofday(now(-30d))
+| where AccountName has_any (DAs)
+| extend col = strcat(RemoteDeviceName,LogonType, ActionType, AccountDomain)
+//| where isnotempty( RemoteDeviceName)
+| summarize countEvents=count() by AccountName, RemoteDeviceName, bin(Timestamp,1h)
+| project-rename timeSlice=Timestamp;
+AnalysisSet
+| invoke detect_anomalous_spike_fl(numericColumnName        = 'countEvents'
+                                , entityColumnName          = 'AccountName'
+                                , scopeColumnName           = 'col'
+                                , timeColumnName            = 'timeSlice'
+                                , startTraining             = trainPeriodStart
+                                , startDetection            = detectPeriodStart
+                                , endDetection              = now()
+                            )
+
+
+
+let connections = 
+EmailEvents
+| distinct RecipientEmailAddress, SenderMailFromAddress
+| extend TargetNodeCriticality = 1
+| project-rename SourceNodeName=SenderMailFromAddress,TargetNodeName=RecipientEmailAddress;
+let graph_blast_radius_fl = (T:(*), sourceIdColumnName:string, targetIdColumnName:string, targetWeightColumnName:string = 'noWeightsColumn'
+    , resultCountLimit:long = 100000, listedIdsLimit:long = 50)
+{
+let paths = (
+    T
+    | extend sourceId           = column_ifexists(sourceIdColumnName, '')
+    | extend targetId           = column_ifexists(targetIdColumnName, '')
+    | extend targetWeight       = tolong(column_ifexists(targetWeightColumnName, 0))
+);
+let aggregatedPaths = (
+    paths
+    | sort by sourceId, targetWeight desc
+    | summarize blastRadiusList = array_slice(make_set_if(targetId, isnotempty(targetId)), 0, (listedIdsLimit - 1))
+                , blastRadiusScore = dcountif(targetId, isnotempty(targetId))
+                , blastRadiusScoreWeighted = sum(targetWeight)
+        by sourceId
+    | extend isBlastRadiusListCapped = (blastRadiusScore > listedIdsLimit)
+);
+aggregatedPaths
+| top resultCountLimit by blastRadiusScore desc
+};
+connections
+| invoke graph_blast_radius_fl(sourceIdColumnName 		= 'SourceNodeName'
+                            , targetIdColumnName 		= 'TargetNodeName'
+                            , targetWeightColumnName 	= 'TargetNodeCriticality'
+)
+| extend sourceIdEmail = extract (@"@(.*)$",1,sourceId)                            
+
+
+
+// Hunting query to find URLs clicked in quarantined emails
+let quarantine=
+EmailEvents
+| where DeliveryLocation contains "quarantine"
+| distinct NetworkMessageId;
+UrlClickEvents
+| where NetworkMessageId in(quarantine)
+
+
+// Hunting query to find domains in urls suspected of being typosquatting
+
+let corpDomains = dynamic(["regionorebrolan.se"]);
+EmailUrlInfo
+| extend urlinfo = parse_url(Url)
+| extend hostname = tostring(urlinfo.Host)
+| extend domain = extract(@"(\w+\.\w+)$",1,hostname)
+| distinct domain
+| extend domainUni = unicode_codepoints_from_string(domain)
+| extend corpdomains = corpDomains
+| mv-expand corpdomains to typeof(string)
+| extend corpdomainsuni = unicode_codepoints_from_string(corpdomains)
+| extend similarity = series_cosine_similarity(domainUni,corpdomainsuni)
+| where domain != corpdomains
+| sort by similarity desc
+
+let DomainAdmins = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct DomainAdmins=tostring(json.accountName);
+let DALoginCounts = 
+IdentityLogonEvents
+| where Timestamp >= ago(30d)
+| where AccountName in(DomainAdmins)
+| summarize Logins = count() by AccountName, bin(Timestamp, 1h);
+let AnomaliesDetected=
+DALoginCounts
+| make-series Logins = max(Logins) on Timestamp from ago(30d) to now(-1d) step 1h by AccountName
+| extend (Anomalies, AnomalyScore, Baseline) = series_decompose_anomalies(Logins, 0.2, -1)
+| mv-expand 
+    Timestamp to typeof(datetime), 
+    Logins to typeof(long), 
+    Anomalies to typeof(long), 
+    AnomalyScore to typeof(double), 
+    Baseline to typeof(long)
+| where Anomalies != 0
+| project AccountName, AnomalyTimestamp=Timestamp, Logins, Baseline, AnomalyScore
+| order by AnomalyScore desc;
+AnomaliesDetected
+| join kind=inner (
+    IdentityLogonEvents
+    | extend LogonTime = bin(Timestamp, 1h)
+    | project AccountName, LogonTime, DeviceName, LogonType, Protocol, OriginalEventTime = Timestamp
+) 
+on $left.AccountName == $right.AccountName and $left.AnomalyTimestamp == $right.LogonTime
+| project AccountName, AnomalyTimestamp, OriginalEventTime, DeviceName, LogonType, Protocol, Logins, Baseline, AnomalyScore
+| order by AnomalyScore desc
+
+
+let DomainAdmins = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct DomainAdmins=tostring(json.accountName);
+let DALoginCounts = 
+IdentityLogonEvents
+| where Timestamp >= ago(30d)
+| where AccountName in(DomainAdmins)
+| summarize Logins = count() by AccountName, bin(Timestamp, 1h);
+let AnomaliesDetected=
+DALoginCounts
+| make-series Logins = max(Logins) on Timestamp from ago(30d) to now(-1d) step 1h by AccountName
+| extend (Anomalies, AnomalyScore, Baseline) = series_decompose_anomalies(Logins, 0.2, -1)
+| mv-expand 
+    Timestamp to typeof(datetime), 
+    Logins to typeof(long), 
+    Anomalies to typeof(long), 
+    AnomalyScore to typeof(double), 
+    Baseline to typeof(long)
+| where Anomalies != 0
+| project AccountName, AnomalyTimestamp=Timestamp, Logins, Baseline, AnomalyScore
+| order by AnomalyScore desc;
+AnomaliesDetected
+| join kind=inner (
+    IdentityLogonEvents
+    | where Timestamp >= ago(30d)
+    | extend LogonTime = bin(Timestamp, 1h)
+    | where AccountName in (DomainAdmins)
+    | project AccountName, LogonTime, DeviceName, LogonType, Protocol, OriginalEventTime = Timestamp
+) 
+on AccountName
+| where abs(datetime_diff('minute', OriginalEventTime, AnomalyTimestamp)) <= 60
+| project AccountName, AnomalyTimestamp, OriginalEventTime, DeviceName, LogonType, Protocol, Logins, Baseline, AnomalyScore
+| order by AnomalyScore desc
+
+
+let LookbackDays = ago(30d);
+let DomainAdmins = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct DomainAdmins=tostring(json.accountName);
+let RecentLogons=
+DeviceLogonEvents
+| where AccountName in(DomainAdmins)
+| project AccountName, DeviceName, Timestamp;
+let HistoricalDevices = RecentLogons
+| where Timestamp between ((LookbackDays) .. startofday(ago(1d)))
+| summarize HistoricalDevices = make_set(DeviceName) by AccountName;
+let Series = LogonData
+| summarize Count = count() by AccountName, DeviceName, bin(Timestamp, 1h)
+| make-series Logons = max(Count) on Timestamp from ago(LookbackDays * 1d) to now(-1h) step 1h by AccountName, DeviceName;
+let TodaysDevices = RecentLogons
+| where Timestamp >= startofday(now())
+| summarize by AccountName, DeviceName, Timestamp;
+TodaysDevices
+| join kind=leftouter (HistoricalDevices) on AccountName
+
+| where not(DeviceName in (HistoricalDevices))
+| project AccountName, DeviceName, Timestamp, Reason = "New device for this account"
+| order by Timestamp desc
+
+
+let LookbackDays = ago(30d);
+let DomainAdmins = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct DomainAdmins=tostring(json.accountName);
+let LogonData=
+DeviceLogonEvents
+| where Timestamp >= LookbackDays
+| where AccountName in(DomainAdmins)
+| project AccountName, DeviceName, Timestamp;
+let Series = LogonData
+| summarize Count = count() by AccountName, DeviceName, bin(Timestamp, 1h)
+| make-series Logons = max(Count) on Timestamp from LookbackDays to now(-1h) step 1h by AccountName, DeviceName;
+Series
+| extend (Anomalies, AnomalyScore, Baseline) = series_decompose_anomalies(Logons, 2, -1)
+| mv-expand Timestamp to typeof(datetime), Logons to typeof(long), Anomalies to typeof(long), AnomalyScore to typeof(double), Baseline to typeof(long)
+| where Anomalies != 0
+| project AccountName, DeviceName, Timestamp, Logons, Baseline, AnomalyScore
+| order by AnomalyScore desc
+
+
+
+let LookbackDays = 30;
+DeviceNetworkEvents
+| where  RemoteIPType == "Public"
+| where isnotempty(InitiatingProcessFileName)
+| summarize ConnCount = count() by InitiatingProcessFileName, bin(Timestamp, 1h)
+| make-series ConnSeries = max(ConnCount) on Timestamp from ago(LookbackDays * 1d) to now(-1h) step 1h by InitiatingProcessFileName
+| extend (Anomalies, AnomalyScore, Baseline) = series_decompose_anomalies(ConnSeries, 0.5, -1)
+| mv-expand Timestamp to typeof(datetime), ConnSeries to typeof(long), Anomalies to typeof(long), AnomalyScore to typeof(double), Baseline to typeof(long)
+| where Anomalies != 0
+| project InitiatingProcessFileName, Timestamp, ConnSeries, Baseline, AnomalyScore
+| order by AnomalyScore desc
+
+let LookbackDays = 30;
+DeviceNetworkEvents
+| where  RemoteIPType == "Public"
+| where isnotempty(InitiatingProcessFileName)
+| summarize ConnCount = count() by InitiatingProcessFileName, bin(Timestamp, 1h)
+| make-series ConnSeries = max(ConnCount) on Timestamp from ago(LookbackDays * 1d) to now(-1h) step 1h by InitiatingProcessFileName
+| extend (Anomalies, AnomalyScore, Baseline) = series_decompose_anomalies(ConnSeries, 0.5, -1)
+| mv-expand Timestamp to typeof(datetime), ConnSeries to typeof(long), Anomalies to typeof(long), AnomalyScore to typeof(double), Baseline to typeof(long)
+| where Anomalies != 0
+| project InitiatingProcessFileName, Timestamp, ConnSeries, Baseline, AnomalyScore
+| order by AnomalyScore desc
+
+
+let LookbackDays = 30;
+let RawData = DeviceNetworkEvents
+| where isnotempty(RemoteIP) and RemoteIPType == "Public"
+| where isnotempty(InitiatingProcessFileName)
+| extend ProcessName = InitiatingProcessFileName
+| extend TimeBucket = bin(Timestamp, 1h)
+| project ProcessName, TimeBucket, RemoteIP;
+let Series = RawData
+| summarize ConnCount = count() by ProcessName, TimeBucket
+| make-series ConnSeries = max(ConnCount) on TimeBucket from ago(LookbackDays * 1d) to now(-1h) step 1h by ProcessName
+| extend (Anomalies, AnomalyScore, Baseline) = series_decompose_anomalies(ConnSeries, 0.5, -1)
+| mv-expand TimeBucket to typeof(datetime), ConnSeries to typeof(long), Anomalies to typeof(long), AnomalyScore to typeof(double), Baseline to typeof(long)
+| where Anomalies != 0;
+Series
+| join kind=inner (
+    RawData
+    | summarize RemoteIPs = make_set(RemoteIP) by ProcessName, TimeBucket
+) on ProcessName, TimeBucket
+| project ProcessName, TimeBucket, ConnSeries, Baseline, AnomalyScore, RemoteIPs
+| order by AnomalyScore desc
+
+
+
+let LookbackDays = 30;
+let Cutoff = startofday(now()); // or use now() - 1d for rolling 24h
+let RawData = DeviceNetworkEvents
+| where isnotempty(RemoteIP) and RemoteIPType == "Public"
+| where isnotempty(InitiatingProcessFileName)
+| extend ProcessName = InitiatingProcessFileName, Time = Timestamp, Device = DeviceName
+| project Time, Device, ProcessName, RemoteIP, RemoteUrl;
+// Step 1: Known internet-communicating processes (excluding today)
+let Historical = RawData
+| where Time < Cutoff
+| summarize by ProcessName;
+// Step 2: Processes communicating today
+let Recent = RawData
+| where Time >= Cutoff
+| summarize RemoteIPs = make_set(RemoteIP), RemoteUrls = make_set(RemoteUrl), FirstSeen = min(Time) by ProcessName, Device;
+// Step 3: New internet-communicating processes
+Recent
+| join kind=leftanti (Historical) on ProcessName
+| project FirstSeen, Device, ProcessName, RemoteIPs, RemoteUrls
+| order by FirstSeen desc
+
+| mv-expand AccountName , Timestamp to typeof(datetime), Logins to typeof(long), Anomalies to typeof(long), AnomalyScore to typeof(double), Baseline to typeof(long)
+| where Anomalies != 0;
+AnomaliesDetected
+
+
+let PeriodStart = startofday(ago(30d));
+let PeriodEnd = startofday(now());
+let Raw = DeviceNetworkEvents
+| where RemoteIPType == "Public"
+| where isnotempty(InitiatingProcessFileName)
+| extend ProcessName = InitiatingProcessFileName, Day = bin(Timestamp, 1d)
+| project Day, ProcessName, DeviceName, RemoteIP;
+// Step 1: Daily presence of each process
+let DailyActivity = Raw
+| summarize DaysSeen = make_set(Day), FirstSeenDay = min(Day), LastSeenDay = max(Day), TotalDays = dcount(Day) by ProcessName;
+// Step 2: Filter for processes that started mid-period (not on the first day)
+DailyActivity
+| where FirstSeenDay > PeriodStart
+| project ProcessName, FirstSeenDay, LastSeenDay, TotalDays
+| order by FirstSeenDay asc
+
+
+let PeriodStart = startofday(ago(30d));
+let PeriodEnd = startofday(now());
+let Raw = DeviceNetworkEvents
+| where RemoteIPType == "Public"
+| where isnotempty(InitiatingProcessFileName)
+| extend ProcessName = InitiatingProcessFileName, Day = bin(Timestamp, 1d)
+| project Day, ProcessName, RemoteIP;
+let ProcessActivity = Raw
+| summarize DaysSeen = make_set(Day), RemoteIPs = make_set(RemoteIP), FirstSeenDay = min(Day), LastSeenDay = max(Day), TotalDays = dcount(Day) by ProcessName;
+ProcessActivity
+| where FirstSeenDay > PeriodStart
+| project ProcessName, FirstSeenDay, LastSeenDay, TotalDays, RemoteIPs
+| order by FirstSeenDay asc
+| mv-expand RemoteIPs to typeof(string)
+| extend geo = geo_info_from_ip_address(RemoteIPs)
+| extend country = tostring(geo.country)
+| where toint(TotalDays) < 10
+| join(
+        DeviceProcessEvents
+        | distinct DeviceName, FileName, ProcessVersionInfoCompanyName
+        | summarize make_set(DeviceName) by FileName, ProcessVersionInfoCompanyName
+     ) on $left.ProcessName==$right.FileName
+     | where array_length(set_DeviceName) < 3
+     | extend NumberOfDevices = array_length(set_DeviceName)
+
+let PeriodStart = startofday(ago(30d));
+let PeriodEnd = startofday(now());
+let Raw = DeviceNetworkEvents
+| where RemoteIPType == "Public"
+| where isnotempty(InitiatingProcessFileName)
+| extend ProcessName = InitiatingProcessFileName, Day = bin(Timestamp, 1d)
+| project Day, ProcessName, RemoteIP;
+let ProcessActivity = Raw
+| summarize DaysSeen = make_set(Day), RemoteIPs = make_set(RemoteIP), FirstSeenDay = min(Day), LastSeenDay = max(Day), TotalDays = dcount(Day) by ProcessName;
+ProcessActivity
+| where FirstSeenDay > PeriodStart
+| project ProcessName, FirstSeenDay, LastSeenDay, TotalDays, RemoteIPs
+| order by FirstSeenDay asc
+
+
+let LookbackDays = 30;
+let RawData = DeviceNetworkEvents
+| where RemoteIPType == "Public"
+| where tolower(InitiatingProcessFileName) == "powershell.exe"
+| where isnotempty(RemoteIP)
+| extend Remote = RemoteIP, Day = bin(Timestamp, 1d)
+| project Day, Remote;
+let Series = RawData
+| summarize ConnCount = count() by Remote, Day
+| make-series ConnSeries = max(ConnCount) on Day from startofday(ago(LookbackDays * 1d)) to startofday(now()) step 1d by Remote;
+Series
+| extend (Anomalies, AnomalyScore, Baseline) = series_decompose_anomalies(ConnSeries, 0.5, -1)
+| mv-expand Day to typeof(datetime), ConnSeries to typeof(long), Anomalies to typeof(long), AnomalyScore to typeof(double), Baseline to typeof(long)
+| where Anomalies != 0
+| project RemoteIP = Remote, Day, ConnSeries, Baseline, AnomalyScore
+| order by AnomalyScore desc
+
+let PeriodStart = startofday(ago(30d));
+let PeriodEnd = startofday(now());
+let Raw = DeviceNetworkEvents
+| where tolower(InitiatingProcessFileName) == "powershell.exe"
+| where RemoteIPType == "Public"
+| where isnotempty(RemoteIP)
+| extend Day = bin(Timestamp, 1d)
+| project Day, RemoteIP;
+// Build binary series: 1 if contacted that day, 0 if not
+let DailySeries = Raw
+| summarize Seen = count() by RemoteIP, Day
+| extend Seen = iff(Seen > 0, 1, 0)
+| make-series SeenSeries = max(Seen) on Day from PeriodStart to PeriodEnd step 1d by RemoteIP;
+// Apply anomaly detection to detect new/unusual access
+DailySeries
+| extend (Anomalies, AnomalyScore, Baseline) = series_decompose_anomalies(SeenSeries, 0.5, -1)
+| mv-expand Day to typeof(datetime), SeenSeries to typeof(long), Anomalies to typeof(long), AnomalyScore to typeof(double), Baseline to typeof(long)
+| where Anomalies != 0
+| project RemoteIP, Day, AnomalyScore
+| order by AnomalyScore desc
+| extend geo = geo_info_from_ip_address(RemoteIP)
+| extend country = geo.country
+
+
+let PeriodStart = startofday(ago(30d));
+let PeriodEnd = startofday(now());
+let Raw = DeviceNetworkEvents
+| where tolower(InitiatingProcessFileName) == "powershell.exe"
+| where RemoteIPType == "Public"
+| where isnotempty(RemoteIP)
+| extend Day = bin(Timestamp, 1d)
+| project Day, RemoteIP;
+// Build binary series: 1 if contacted that day, 0 if not
+let DailySeries = Raw
+| summarize Seen = count() by RemoteIP, Day
+| extend Seen = iff(Seen > 0, 1, 0)
+| make-series SeenSeries = max(Seen) on Day from PeriodStart to PeriodEnd step 1d by RemoteIP;
+// Apply anomaly detection to detect new/unusual access
+DailySeries
+| extend (Anomalies, AnomalyScore, Baseline) = series_decompose_anomalies(SeenSeries, 0.5, -1)
+| mv-expand Day to typeof(datetime), SeenSeries to typeof(long), Anomalies to typeof(long), AnomalyScore to typeof(double), Baseline to typeof(long)
+| where Anomalies != 0
+| project RemoteIP, Day, AnomalyScore
+| order by AnomalyScore desc
+| join kind=inner (
+  DeviceNetworkEvents
+  | where tolower(InitiatingProcessFileName) == "powershell.exe"
+  | where RemoteIPType == "Public"
+  | project Timestamp, RemoteIP, DeviceName, InitiatingProcessCommandLine
+) on RemoteIP
+| where bin(Timestamp, 1d) == Day
+| project RemoteIP, Day, DeviceName, InitiatingProcessCommandLine, AnomalyScore
+| where InitiatingProcessCommandLine !contains "Windows Defender Advanced Threat Protection"
+
+
+
+let starttime = 21d; 
+let endtime = 0d; 
+let timeframe = 1d; 
+Usage 
+| where TimeGenerated between (startofday(ago(starttime))..startofday(ago(endtime))) 
+| where IsBillable == "true" 
+| make-series ActualUsage=sum(Quantity) default = 0 on TimeGenerated from startofday(ago(starttime)) to startofday(ago(endtime)) step timeframe by DataType
+| extend(Anomalies, AnomalyScore, ExpectedUsage) = series_decompose_anomalies(ActualUsage) 
+| mv-expand ActualUsage to typeof(double), TimeGenerated to typeof(datetime), Anomalies to typeof(double),AnomalyScore to typeof(double), ExpectedUsage to typeof(long) 
+| where Anomalies != 0 
+| project TimeGenerated,ActualUsage,ExpectedUsage,AnomalyScore,Anomalies,DataType
+| sort by abs(AnomalyScore) desc 
+
+
+let starttime = 90d; 
+let endtime = 0d; 
+let timeframe = 1d; 
+Usage 
+| where TimeGenerated between (startofday(ago(starttime)) .. startofday(ago(endtime))) 
+| where IsBillable == "true" 
+| make-series ActualUsage=sum(Quantity) default = 0 on TimeGenerated from startofday(ago(starttime)) to startofday(ago(endtime)) step timeframe by DataType
+| extend(Anomalies, AnomalyScore, ExpectedUsage) = series_decompose_anomalies(ActualUsage) 
+| mv-expand
+    ActualUsage to typeof(double),
+    TimeGenerated to typeof(datetime),
+    Anomalies to typeof(double),
+    AnomalyScore to typeof(double),
+    ExpectedUsage to typeof(long) 
+| where Anomalies != 0 
+| project TimeGenerated, ActualUsage, ExpectedUsage, AnomalyScore, Anomalies, DataType
+| sort by abs(AnomalyScore) desc 

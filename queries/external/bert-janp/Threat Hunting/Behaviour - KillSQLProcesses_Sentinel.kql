@@ -1,0 +1,15 @@
+let TotalKilledThreshold = 10;
+let TotalParametersThreshold = 10;
+DeviceProcessEvents
+| where FileName == "taskkill.exe"
+| extend CommandLineParameters = split(ProcessCommandLine, " ")
+| extend TotalParameters = array_length(CommandLineParameters)
+// Extract allSQL related processes in the CommandLineParameters
+| mv-apply KilledProcess = CommandLineParameters on (
+    where KilledProcess contains "sql"
+    | project KilledProcess
+)
+| summarize arg_max(TimeGenerated, *), AllKilledProcess = make_set(KilledProcess) by ReportId
+| extend TotalKilledProcesses = array_length(AllKilledProcess)
+| project-reorder TimeGenerated, ProcessCommandLine, TotalParameters, TotalKilledProcesses
+| where TotalKilledProcesses >= TotalKilledThreshold and TotalParameters >= TotalParametersThreshold

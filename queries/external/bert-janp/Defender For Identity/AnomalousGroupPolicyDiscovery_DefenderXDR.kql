@@ -1,0 +1,10 @@
+let PreviousActivity = materialize (
+     IdentityQueryEvents
+     | where Timestamp > ago(30d)
+     | where QueryType == "AllGroupPolicies"
+     | summarize make_set(DeviceName)
+     );
+IdentityQueryEvents
+| where Timestamp > ago(1d)
+| where QueryType == "AllGroupPolicies"
+| where not(DeviceName has_any(PreviousActivity))

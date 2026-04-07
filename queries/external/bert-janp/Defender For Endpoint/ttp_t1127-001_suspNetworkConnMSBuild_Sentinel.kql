@@ -1,0 +1,3 @@
+// Detection opportunity 5: MSBuild without commands
+DeviceNetworkEvents
+| where InitiatingProcessFileName =~ "msbuild.exe" and (isempty(InitiatingProcessCommandLine) or InitiatingProcessCommandLine =~ "msbuild.exe")

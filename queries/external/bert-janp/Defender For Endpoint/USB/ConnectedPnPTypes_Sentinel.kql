@@ -1,0 +1,7 @@
+DeviceEvents
+| where ActionType == "PnpDeviceConnected"
+| extend PNPInfo = parse_json(AdditionalFields)
+| extend ClassName = tostring(PNPInfo.ClassName), DeviceDescription = tostring(PNPInfo.DeviceDescription), VendorIds = tostring(PNPInfo.VendorIds), DeviceId = tostring(PNPInfo.DeviceId)
+| extend PnPType = tostring(split(DeviceId, @"\", 0)[0])
+| summarize Total = count() by PnPType
+| sort by Total

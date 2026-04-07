@@ -1,0 +1,31 @@
+let NetworkNodes =
+DeviceNetworkInfo
+| mv-apply todynamic(IPAddresses) on (
+                            summarize IPIDs = make_bag(
+                                                            pack("AddressType", 
+                                                                    tostring(IPAddresses.AddressType),
+                                                                    "IPAddress",
+                                                                    IPAddresses.IPAddress,
+                                                                    "SubnetPrefix",
+                                                                    IPAddresses.SubnetPrefix
+                                                                )
+                                                        )
+                        )
+| extend IPAddress = tostring(IPIDs.IPAddress),AddressType = tostring(IPIDs.AddressType),SubnetPrefix = tostring(IPIDs.SubnetPrefix)
+| where AddressType != "LinkLocal" | project-away IPIDs
+| join (DeviceInfo) on DeviceId | project Timestamp, DeviceId, DeviceName, MacAddress, IPAddress,AddressType,SubnetPrefix, OSPlatform, PublicIP;
+let NetworkEdges = 
+DeviceNetworkEvents
+| where LocalPort == 3389
+| where ActionType == "InboundConnectionAccepted"
+| where LocalIP !contains ":"
+| summarize arg_max(Timestamp,*) by RemoteIP, LocalIP
+| project Timestamp, SourceIP=RemoteIP, DestinationIP=LocalIP;
+NetworkEdges
+| make-graph SourceIP --> DestinationIP with NetworkNodes on IPAddress
+| graph-match (Source)<-[reports*2..5]-(Target)
+project Target.IPAddress, flow = map(reports, SourceIP)
+| extend CountJumps = array_length(flow)
+| sort by CountJumps desc 
+| take 3
+

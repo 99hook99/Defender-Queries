@@ -1,0 +1,7 @@
+DeviceNetworkEvents
+| where RemotePort == 445
+| where ActionType == "ConnectionSuccess"
+// Collect the last event that a device has connected via SMB to a unique remote IP
+| summarize arg_max(Timestamp, *) by DeviceId, RemoteIP
+| summarize RemoteSMBUrls = make_set_if(RemoteUrl, isnotempty(RemoteUrl)), make_set_if(RemoteIP, isempty(RemoteUrl)), TotalConnections = dcount(RemoteIP) by DeviceName
+| sort by TotalConnections

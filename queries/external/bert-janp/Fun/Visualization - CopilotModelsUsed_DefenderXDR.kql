@@ -1,0 +1,7 @@
+CloudAppEvents
+| where ActionType =~ "CopilotInteraction"
+| extend WorkLoad = tostring(parse_json(RawEventData).Workload)
+| where WorkLoad =~ "Copilot"
+| extend CopilotModel = tostring(parse_json(RawEventData).CopilotEventData.ModelTransparencyDetails[0].ModelName)
+| summarize Total = count() by CopilotModel
+| render piechart

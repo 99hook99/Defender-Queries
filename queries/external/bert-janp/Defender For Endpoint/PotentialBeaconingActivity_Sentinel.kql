@@ -1,0 +1,15 @@
+let DeviceThreshold = 5;
+let ConnectionThreshold = 25;
+let GlobalPrevalanceThreshold = 250;
+DeviceNetworkEvents
+| where TimeGenerated > ago(7d)
+| where not(ipv4_is_private(RemoteIP))
+| where ActionType == 'ConnectionSuccessAggregatedReport'
+| extend Connections = toint(parse_json(AdditionalFields).uniqueEventsAggregated)
+| summarize Total = count(), Devices = dcount(DeviceId), Domains = make_set(RemoteUrl), AvgConnections = avg(Connections) by RemoteIP, bin(TimeGenerated, 1d)
+| where AvgConnections >= ConnectionThreshold and Devices <= DeviceThreshold
+| join kind=inner (DeviceNetworkEvents
+    | where ActionType == 'ConnectionSuccess'
+    | distinct RemoteIP, InitiatingProcessSHA256) on RemoteIP
+    | invoke FileProfile(InitiatingProcessSHA256)
+    | where GlobalPrevalence <= GlobalPrevalanceThreshold

@@ -1,0 +1,6 @@
+let TimeRange = 10d;
+search *
+| where Timestamp > ago(TimeRange)
+| project Timestamp, $table
+| summarize Events = count() by $table, bin(Timestamp, 1d)
+| render linechart  with (title="Total Daily Events")

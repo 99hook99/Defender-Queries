@@ -1,0 +1,20 @@
+let CriticalUsers = IdentityInfo 
+    | where CriticalityLevel == "1"
+    | project AccountName, AccountDisplayName
+    | join kind=inner (DeviceInfo
+    | extend AccountNameDev = parse_json(LoggedOnUsers)[0]["UserName"]
+    | extend AccountNameDevice = tostring(AccountNameDev)
+    | where isnotempty(AccountNameDevice)
+    | project DeviceId, DeviceName, AccountNameDevice)
+    on $left.AccountName == $right.AccountNameDevice
+    | summarize by DeviceId, DeviceName, AccountName, AccountDisplayName;
+DeviceTvmSecureConfigurationAssessment 
+    | where ConfigurationId has "scid-4001"
+    | where IsCompliant == "0"
+    | where IsApplicable == "1"
+    | extend Folder = parse_json(Context)[0][0]
+    | extend Path = parse_json(Context)[0][1]
+    | project DeviceId, DeviceName, OSPlatform, Folder, Path
+    | join kind=inner CriticalUsers on $left.DeviceId == $right.DeviceId
+    | project DeviceId, DeviceName, OSPlatform,
+        Folder, Path, AccountName, AccountDisplayName

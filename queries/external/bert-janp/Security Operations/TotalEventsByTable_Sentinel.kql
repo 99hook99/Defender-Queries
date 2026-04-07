@@ -1,0 +1,5 @@
+let TimeFrame = 30d
+union *
+| where TimeGenerated > startofday(ago(TimeFrame))
+| summarize TotalEvents = count() by Type
+| sort by TotalEvents asc

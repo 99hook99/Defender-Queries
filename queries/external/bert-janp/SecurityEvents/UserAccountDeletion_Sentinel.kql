@@ -1,0 +1,3 @@
+SecurityEvent
+| where EventID == 4726
+| project TimeGenerated, DeletedUser = TargetAccount, Domain = TargetDomainName, Initiator = SubjectAccount, Activity

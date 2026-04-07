@@ -1,0 +1,4 @@
+union withsource=TableName GraphAPIAuditEvents, MicrosoftGraphActivityLogs
+| extend IngestionTime = ingestion_time()
+| extend IngestionDelay = datetime_diff('minute',  IngestionTime, Timestamp)
+| summarize Average = round(avg(IngestionDelay), 1), percentiles(IngestionDelay, 50, 75, 90, 95, 97, 99) by TableName

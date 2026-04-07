@@ -1,0 +1,9 @@
+let Filters = dynamic(['AppData', '%localappdata%', '%appdata%']);
+let Exclusions = dynamic([@'\\Microsoft\\OneDrive\\OneDriveStandaloneUpdater.exe', 'OneDriveLauncher.exe']);
+DeviceEvents
+| where ActionType in ('ScheduledTaskCreated', 'ScheduledTaskUpdated')
+| where AdditionalFields has_any (Filters)
+| extend ParsedAdditionalFields = parse_json(AdditionalFields)
+| extend ScheduledTaskName = ParsedAdditionalFields.TaskName, Details = parse_json(ParsedAdditionalFields.TaskContent)
+| where not(Details has_any (Exclusions))
+| project-reorder Timestamp, DeviceName, ActionType, InitiatingProcessAccountUpn, ScheduledTaskName, Details

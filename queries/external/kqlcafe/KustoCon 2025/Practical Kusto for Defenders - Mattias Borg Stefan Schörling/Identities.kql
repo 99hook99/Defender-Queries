@@ -1,0 +1,175 @@
+// DefenderBoys
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| mv-apply EntityIds on (summarize Identifiers = make_bag(pack(tostring(EntityIds.type), EntityIds.id)))
+| project accountName = json.accountName,Identifiers,accountEnabled=json.accountEnabled,distinguishedName=json.distinguishedName,adminCount=json.adminCount,AccountControl=json.userAccountControl
+
+
+IdentityLogonEvents
+| where isnotempty( AdditionalFields.Spns)
+| where isnotempty( AdditionalFields.EncryptionType)
+| extend Spns = tostring(AdditionalFields.Spns), 
+         EncryptionType = tostring(AdditionalFields.EncryptionType),
+         KerberosType = tostring(AdditionalFields.KerberosType)
+| where EncryptionType == "rc4hmac"
+| extend SpnType = tostring(extract(@"^\w+",0,Spns))
+| where SpnType in("MSSQLSvc","HTTP")
+| extend TargetAccountSid = tostring(AdditionalFields.TargetAccountSid),
+         TargetUserAccount = tostring(AdditionalFields.["TARGET_OBJECT.USER"])
+
+
+//One usage of DAs
+let DAs = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct tostring(json.accountName);
+IdentityLogonEvents
+| where AccountName has_any (DAs)
+ 
+//Another example
+let DAs = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct tostring(json.accountName);
+DeviceLogonEvents
+| where AccountName has_any (DAs)
+| summarize DistinctDevices = dcount(DeviceName), 
+            NetworkSuccessLogons = countif(ActionType == "LogonSuccess" and LogonType == "Network"), 
+            RemoteInteractiveSuccessLogons = countif(ActionType=="LogonSuccess" and LogonType  =="RemoteInteractive"),
+            TotalRemoteDeviceNames = dcount(RemoteDeviceName),
+            RemoteIPs = dcount(RemoteIP),
+            FailedLogins =countif(ActionType == "LogonFailed"),
+            AttemptedLogins = countif(ActionType=="LogonAttempted"), 
+            ProtocolsUsed = dcount(Protocol)
+         by AccountName
+
+
+let DCs = ExposureGraphNodes
+| extend _jsonBlob = (parse_json(NodeProperties)).rawData
+| extend DeviceName = tolower((_jsonBlob.deviceName)),
+         Roles = _jsonBlob.deviceRole,
+         OSVersionBuild = strcat(tostring(_jsonBlob.osVersionFriendlyName),"-",tostring(_jsonBlob.osReleaseId),"-",tostring(_jsonBlob.osBuild)),
+         OSVersion = tostring(_jsonBlob.osVersionFriendlyName),
+         ExposureScore = tostring(_jsonBlob.exposureScore),
+         SenseClientVersion = tostring(_jsonBlob.senseClientVersion),
+         isHybridAzureADJoined = _jsonBlob.isHybridAzureADJoined,
+         isAzureADJoined = _jsonBlob.isAzureADJoined,
+         SensorHealthState = tostring(_jsonBlob.sensorHealthState),
+         DeviceRiskScore = tostring(_jsonBlob.riskScore),
+         isInternetFacing = _jsonBlob.isInternetFacing,
+         RDPStatus = _jsonBlob.rdpStatus,
+         RemoteServices = _jsonBlob.remoteServicesInfo,
+         TPMInfo = _jsonBlob.tpmData,
+         VulnHasHighOrCritical = _jsonBlob.highRiskVulnerabilityInsights.hasHighOrCritical,
+         VulnMaxCvssScore = _jsonBlob.highRiskVulnerabilityInsights.maxCvssScore
+| extend RDPServiceStatus = RDPStatus.serviceRunning,
+         RDPAllowConnections = RDPStatus.allowConnections
+| where Roles has "DomainController"          
+| mv-apply EntityIds on (
+                            summarize Identifiers = make_bag(
+                                                            pack(
+                                                                    tostring(EntityIds.type), 
+                                                                    EntityIds.id
+                                                                )
+                                                        )
+                        )
+| project-away NodeId,NodeLabel,NodeName,NodeProperties,_jsonBlob, Categories, Roles,RDPStatus;
+let DAs = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct tostring(json.accountName);
+DeviceLogonEvents
+| where AccountName has_any (DAs | project AccountName)
+| where DeviceName !in(DCs | distinct DeviceName)
+| summarize DistinctDevices = dcount(DeviceName), 
+            NetworkSuccessLogons = countif(ActionType == "LogonSuccess" and LogonType == "Network"), 
+            RemoteInteractiveSuccessLogons = countif(ActionType=="LogonSuccess" and LogonType  =="RemoteInteractive"),
+            TotalRemoteDeviceNames = dcount(RemoteDeviceName),
+            RemoteIPs = dcount(RemoteIP),
+            FailedLogins =countif(ActionType == "LogonFailed"),
+            AttemptedLogins = countif(ActionType=="LogonAttempted"), 
+            ProtocolsUsed = dcount(Protocol)
+         by AccountName         
+
+
+
+let DCs = ExposureGraphNodes
+| extend _jsonBlob = (parse_json(NodeProperties)).rawData
+| distinct DeviceName = tolower(_jsonBlob.deviceName);
+let DAs = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct tostring(json.accountName);
+DeviceLogonEvents
+| where AccountName has_any (DAs)
+| where DeviceName !in(DCs)
+| summarize DistinctDevices = dcount(DeviceName), 
+            NetworkSuccessLogons = countif(ActionType == "LogonSuccess" and LogonType == "Network"), 
+            RemoteInteractiveSuccessLogons = countif(ActionType=="LogonSuccess" and 
+            LogonType =="RemoteInteractive"),
+            TotalRemoteDeviceNames = dcount(RemoteDeviceName),
+            RemoteIPs = dcount(RemoteIP),
+            FailedLogins =countif(ActionType == "LogonFailed"),
+            AttemptedLogins = countif(ActionType=="LogonAttempted"), 
+            ProtocolsUsed = dcount(Protocol)
+            by AccountName
+
+
+let DCs = ExposureGraphNodes
+| extend _jsonBlob = (parse_json(NodeProperties)).rawData
+| extend DeviceName = tolower((_jsonBlob.deviceName)),
+         Roles = _jsonBlob.deviceRole,
+         OSVersionBuild = strcat(tostring(_jsonBlob.osVersionFriendlyName),"-",tostring(_jsonBlob.osReleaseId),"-",tostring(_jsonBlob.osBuild)),
+         OSVersion = tostring(_jsonBlob.osVersionFriendlyName),
+         ExposureScore = tostring(_jsonBlob.exposureScore),
+         SenseClientVersion = tostring(_jsonBlob.senseClientVersion),
+         isHybridAzureADJoined = _jsonBlob.isHybridAzureADJoined,
+         isAzureADJoined = _jsonBlob.isAzureADJoined,
+         SensorHealthState = tostring(_jsonBlob.sensorHealthState),
+         DeviceRiskScore = tostring(_jsonBlob.riskScore),
+         isInternetFacing = _jsonBlob.isInternetFacing,
+         RDPStatus = _jsonBlob.rdpStatus,
+         RemoteServices = _jsonBlob.remoteServicesInfo,
+         TPMInfo = _jsonBlob.tpmData,
+         VulnHasHighOrCritical = _jsonBlob.highRiskVulnerabilityInsights.hasHighOrCritical,
+         VulnMaxCvssScore = _jsonBlob.highRiskVulnerabilityInsights.maxCvssScore
+| extend RDPServiceStatus = RDPStatus.serviceRunning,
+         RDPAllowConnections = RDPStatus.allowConnections
+| where Roles has "DomainController"          
+| mv-apply EntityIds on (
+                            summarize Identifiers = make_bag(
+                                                            pack(
+                                                                    tostring(EntityIds.type), 
+                                                                    EntityIds.id
+                                                                )
+                                                        )
+                        )
+| project-away NodeId,NodeLabel,NodeName,NodeProperties,_jsonBlob, Categories, Roles,RDPStatus;
+let DAs = 
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| distinct tostring(json.accountName);
+DeviceLogonEvents
+| where AccountName has_any (DAs)
+| where DeviceName !in(DCs | distinct DeviceName)
+| summarize DistinctDevices = dcount(DeviceName), 
+            NetworkSuccessLogons = countif(ActionType == "LogonSuccess" and LogonType == "Network"), 
+            RemoteInteractiveSuccessLogons = countif(ActionType=="LogonSuccess" and LogonType  =="RemoteInteractive"),
+            TotalRemoteDeviceNames = dcount(RemoteDeviceName),
+            RemoteIPs = dcount(RemoteIP),
+            FailedLogins =countif(ActionType == "LogonFailed"),
+            AttemptedLogins = countif(ActionType=="LogonAttempted"), 
+            ProtocolsUsed = dcount(Protocol)
+         by AccountName       

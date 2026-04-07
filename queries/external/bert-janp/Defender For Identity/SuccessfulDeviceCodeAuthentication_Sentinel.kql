@@ -1,0 +1,6 @@
+IdentityLogonEvents 
+| where ActionType == @"LogonSuccess"
+| where LogonType == @"Cmsi:Cmsi"
+| extend Application = tostring(parse_json(AdditionalFields).['ARG.CLOUD_SERVICE']),
+         Country = geo_info_from_ip_address(IPAddress).country
+| project-reorder TimeGenerated, AccountUpn, LogonType, ActionType, Application, IPAddress, Country

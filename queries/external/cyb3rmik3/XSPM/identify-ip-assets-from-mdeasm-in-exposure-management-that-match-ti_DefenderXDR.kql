@@ -1,0 +1,13 @@
+let TIIPs = 
+    ThreatIntelligenceIndicator
+    | extend TIIPAddress = tostring(NetworkIP)
+    | where isnotempty(TIIPAddress)
+    | project TIIPAddress, ThreatType, Description, ConfidenceScore;
+let EASMIPs = 
+    ExposureGraphNodes
+    | where NodeLabel == "IP address"
+    | project EASPIPAdress = tostring(NodeName);
+TIIPs
+| join kind=inner (
+    EASMIPs
+) on $left.TIIPAddress == $right.EASPIPAdress

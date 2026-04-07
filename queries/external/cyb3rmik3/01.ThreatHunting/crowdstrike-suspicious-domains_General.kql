@@ -1,0 +1,5 @@
+let ThreatIntelFeed = externaldata(Domain: string)[@"https://raw.githubusercontent.com/cyb3rmik3/Hunting-Lists/main/crowdstrike-phishing-domains.csv"] with (format="csv", ignoreFirstRecord=True)
+| project Domain = tolower(Domain);
+EmailEvents
+| join kind=inner ThreatIntelFeed on $left.SenderMailFromDomain == $right.Domain
+| join EmailEvents on NetworkMessageId

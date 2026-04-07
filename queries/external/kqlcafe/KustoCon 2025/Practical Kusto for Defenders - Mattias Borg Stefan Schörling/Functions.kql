@@ -1,0 +1,57 @@
+let IntToIPv4 = (ipint:long) {
+    strcat(
+        tostring((ipint / 16777216) % 256), ".",
+        tostring((ipint / 65536) % 256), ".",
+        tostring((ipint / 256) % 256), ".",
+        tostring(ipint % 256)
+    )
+};
+
+
+let IntToIPv4 = (ipint:long) {
+    strcat(
+        tostring((ipint / 16777216) % 256), ".",
+        tostring((ipint / 65536) % 256), ".",
+        tostring((ipint / 256) % 256), ".",
+        tostring(ipint % 256)
+    )
+};
+
+let IPv4ToInt = (ip:string) {
+    let parts = split(ip, ".");
+    tolong(parts[0]) * 16777216  // 256^3
+    + tolong(parts[1]) * 65536   // 256^2
+    + tolong(parts[2]) * 256     // 256^1
+    + tolong(parts[3])           // 256^0
+};
+YourTable
+| extend IPv4Int = IPv4ToInt(YourIpColumn)
+
+
+
+
+
+//Get Domain Admin accounts (member of "Domain Admins")
+ExposureGraphNodes
+| extend json = (parse_json(NodeProperties)).rawData
+| where json.nestedAdGroupNames has "Domain Admins"
+| where NodeLabel == "user"
+| mv-apply EntityIds on (
+                            summarize Identifiers = make_bag(
+                                                            pack(
+                                                                    tostring(EntityIds.type), 
+                                                                    EntityIds.id
+                                                                )
+                                                        )
+                        )
+| project accountName = json.accountName,
+                        Identifiers,
+                        accountEnabled=json.accountEnabled,
+                        distinguishedName=json.distinguishedName,
+                        adminCount=json.adminCount,
+                        AccountControl=json.userAccountControl,
+                        passwordUpdateTime=json.passwordUpdateTime,
+                        createdDateTime = json.createdDateTime,
+                        sidHistory=json.sidHistory,
+                        accountDomain=json.accountDomain,
+                        nestedAdGroupNames = json.nestedAdGroupNames

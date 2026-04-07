@@ -1,0 +1,5 @@
+AlertEvidence 
+| where EntityType in ('Machine', 'user')
+| where Title has_any ('Ransomware', 'Hands-on-keyboard', 'RunMRU')
+| where Severity == 'High'
+| project-reorder Timestamp, Title, AlertId, Severity, DeviceId, DeviceName, AccountObjectId

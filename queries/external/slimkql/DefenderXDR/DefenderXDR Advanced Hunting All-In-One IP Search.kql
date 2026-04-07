@@ -1,0 +1,67 @@
+// DefenderXDR Advanced Hunting All-In-One IP Search
+// https://www.linkedin.com/pulse/defenderxdr-advanced-hunting-all-in-one-ip-search-steven-lim-a2j7c/
+
+// This KQL query searches across these DefenderXDR log tables for the ip variable that is defined at the start:
+// AADSignInEventsBeta, AADSignInEventsBeta, CloudAppEvents, IdentityLogonEvents, UrlClickEvents, DeviceNetworkInfo, CloudAuditEvents, DeviceFileEvents, AlertEvidence, BehaviorEntities, DeviceEvents, DeviceLogonEvents, DeviceNetworkEvents, EmailEvents, DeviceInfo and ExposureGraphNodes
+
+let ip = "223.171.89.199"; // Sample Malicious IP
+search in (AADSignInEventsBeta, AADSignInEventsBeta, CloudAppEvents, IdentityLogonEvents, CloudAuditEvents, UrlClickEvents, DeviceNetworkInfo, CloudAuditEvents, DeviceFileEvents, AlertEvidence, ExposureGraphNodes, BehaviorEntities, DeviceEvents, DeviceLogonEvents, DeviceNetworkEvents, EmailEvents, DeviceInfo)
+Timestamp between (ago(7d) .. now())
+and (
+// AADSignInEventsBeta AADSpnSignInEventsBeta CloudAppEvents IdentityLogonEvents
+// UrlClickEvents DeviceNetworkInfo CloudAuditEvents
+IPAddress == ip
+// DeviceFileEvents
+or RequestSourceIP == ip
+// AlertEvidence BehaviorEntities DeviceEvents DeviceLogonEvents DeviceNetworkEvents
+or RemoteIP == ip
+// DeviceEvents DeviceFileEvents
+or FileOriginIP == ip
+// EmailEvents
+or SenderIPv4 == ip
+// IdentityLogonEvents
+or DestinationIPAddress == ip
+// DeviceInfo
+or PublicIP == ip
+// AlertEvidence BehaviorEntities DeviceEvents DeviceNetworkEvents
+or LocalIP == ip
+// ExposureGraphNodes
+or NodeProperties.rawData.publicIP == ip
+) 
+
+
+// MITRE ATT&CK Mapping
+
+// Based on the fields and data sources used in the KQL query, here are some potential MITRE ATT&CK techniques that could be detected:
+
+// T1071.001 - Application Layer Protocol: Web Protocols
+// Data Source: CloudAppEvents, UrlClickEvents
+// Field: IPAddress, RequestSourceIP, RemoteIP
+
+// T1078 - Valid Accounts
+// Data Source: AADSignInEventsBeta, IdentityLogonEvents
+// Field: IPAddress, RequestSourceIP, RemoteIP
+
+// T1040 - Network Sniffing
+// Data Source: DeviceNetworkInfo, DeviceNetworkEvents
+// Field: IPAddress, RemoteIP, LocalIP
+
+// T1105 - Ingress Tool Transfer
+// Data Source: DeviceFileEvents, CloudAuditEvents
+// Field: FileOriginIP, RequestSourceIP
+
+// T1566.001 - Phishing: Spearphishing Attachment
+// Data Source: EmailEvents
+// Field: SenderIPv4
+
+// T1071.004 - Application Layer Protocol: DNS
+// Data Source: DeviceNetworkEvents
+// Field: DestinationIPAddress, PublicIP
+
+// T1087.001 - Account Discovery: Local Account
+// Data Source: DeviceLogonEvents
+// Field: IPAddress, RemoteIP
+
+// T1136.001 - Create Account: Local Account
+// Data Source: IdentityLogonEvents
+// Field: IPAddress, RequestSourceIP

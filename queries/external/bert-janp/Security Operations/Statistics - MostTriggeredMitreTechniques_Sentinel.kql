@@ -1,0 +1,11 @@
+// Timeframe to collect incident statistics
+let timeframe = 7d;
+SecurityIncident
+| where TimeGenerated > ago(timeframe)
+// Collect the last entry of each alert
+| summarize arg_max(TimeGenerated, *) by IncidentNumber
+// Ensure that events with multiple techniques can be counted
+| extend MitreTechnique = todynamic(AdditionalData).techniques
+| mv-expand MitreTechnique
+| summarize TriggerCount = count() by tostring(MitreTechnique)
+| top 10 by TriggerCount

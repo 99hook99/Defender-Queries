@@ -1,0 +1,22 @@
+let PreviousRDPConnections = materialize (
+     DeviceNetworkEvents
+     | where TimeGenerated > ago(20d)
+     | where ActionType == "ConnectionSuccess"
+     | where not(InitiatingProcessFileName == "Microsoft.Tri.Sensor.exe") 
+// DFI Sensor
+     | where RemotePort == 3389
+     );
+PreviousRDPConnections
+| where TimeGenerated > ago(2d)
+| join kind=leftanti (PreviousRDPConnections
+     | where TimeGenerated > ago(1d))
+     on DeviceName, InitiatingProcessAccountName
+| project
+     TimeGenerated,
+     DeviceName,
+     InitiatingProcessAccountDomain,
+     InitiatingProcessAccountName,
+     InitiatingProcessCommandLine,
+     RemoteUrl,
+     RemoteIP
+| sort by TimeGenerated

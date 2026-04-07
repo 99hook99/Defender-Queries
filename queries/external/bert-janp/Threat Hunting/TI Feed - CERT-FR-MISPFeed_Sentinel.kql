@@ -1,0 +1,6 @@
+let CERTFRFeed = externaldata (SHA1: string, threatid :string) ["https://misp.cert.ssi.gouv.fr/feed-misp/hashes.csv"];
+DeviceFileEvents
+| join kind=inner CERTFRFeed on SHA1
+// Additional information about the hash is available by using the ThreatInfoLink field.
+| extend ThreatInfoLink = strcat("https://misp.cert.ssi.gouv.fr/feed-misp/", threatid, ".json")
+| project-reorder TimeGenerated, SHA1, ThreatInfoLink, DeviceName

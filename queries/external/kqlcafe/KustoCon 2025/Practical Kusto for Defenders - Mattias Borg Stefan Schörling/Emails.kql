@@ -1,0 +1,75 @@
+// Emails with malicious URL removed after delivery >> URLClick on those messages
+// DefenderBoys
+// Mattias Borg
+AlertInfo
+| where Title contains "Email messages containing malicious URL removed after delivery​"
+| project-rename AlertTimetamp = Timestamp
+| join (AlertEvidence | summarize arg_max(Timestamp,*) by NetworkMessageId
+| project-rename EvidenceTimetamp = Timestamp
+) on AlertId
+| extend _json = parse_json(AdditionalFields)
+| extend SenderFromAddress = tostring(_json.Sender),
+         RecipientAddress = tostring(_json.Recipient)
+         | project-away _json
+         | extend ResearchSubject = replace_regex(EmailSubject,@"[a-f0-9]{10,}","")
+| project AlertTimetamp, EvidenceTimetamp, AccountUpn, EmailSubject, SenderFromAddress,RecipientAddress, 
+          NetworkMessageId, AlertId,ResearchSubject
+| join (
+        UrlClickEvents 
+        | project URLClickTimestamp=Timestamp,AccountUpn, ActionType, NetworkMessageId, IPAddress, Url, UrlChain
+        ) on NetworkMessageId
+        | project-away *1
+        
+
+// EmailClusters with some messages Detected and some were not  >> URLClick on the none-detected messages
+let badIds=
+EmailEvents
+| where ThreatTypes has "Phish" and DeliveryAction in("Blocked")
+| where ConfidenceLevel has '"Phish":"High"'
+| summarize CountMessages=dcount(NetworkMessageId) by EmailClusterId;
+EmailEvents
+| where EmailClusterId in(badIds | project EmailClusterId)
+| where DeliveryAction == "Delivered"
+| join kind=inner (UrlClickEvents | project-rename URLClickTimestamp = Timestamp) on NetworkMessageId
+| project-reorder Timestamp, URLClickTimestamp
+
+
+
+// Research
+// DefenderBoys
+// Mattias Borg
+let normalize_subject = (s:string) {
+    let x0 = tolower(s);
+    let x1 = replace_regex(x0, @"https?://([^\s/]+)[^\s]*", "<URL:\\1>");
+    let x2 = replace_regex(x1,  @"\bwww\.([^\s/]+)[^\s]*","<URL\\1>>");
+    let x3 = replace_regex(x2,  @"[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})", "<EMAIL:\\1>");
+    let x4 = replace_regex(x3,  @"\b(?:\d{1,3}\.){3}\d{1,3}\b", "<IP>");
+    let x5 = replace_regex(x4,  @"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", "<UUID>");
+    let x6 = replace_regex(x5,  @"\b[0-9a-f]{16,}\b", "<HEX>");
+    let x7 = replace_regex(x6,  @"\b(?:inv(?:oice)?|order(?:[-_ ]?id)?|ref(?:#|:)?)\s*[:#-]*[A-Za-z0-9-]{4,}\b", "<ORDER>");
+    let x8 = replace_regex(x7,  @"\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b", "<DATE>");
+    let x9 = replace_regex(x8,  @"\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b",   "<DATE>");
+    let x10 = replace_regex(x9, @"\b\d{1,2}:\d{2}(?::\d{2})?\b", "<TIME>");
+    let x11 = replace_regex(x10, @"\b[A-Za-z0-9]{8,}\b", "<TOKEN>");
+    let x12 = replace_regex(x11, @"\b\d{3,}\b", "<NUM>");
+    let x13 = replace_regex(x12, @"[^a-z0-9 <>:]", " ");
+    let x14 = replace_regex(x13, @"[a-f0-9]{10,}","");
+    trim(' ', replace_regex(x14, @"\s+", " "))
+};
+AlertInfo
+| where Title contains "Email messages containing malicious URL removed after delivery​"
+| project-rename AlertTimetamp = Timestamp
+| join (AlertEvidence | summarize arg_max(Timestamp,*) by NetworkMessageId
+| project-rename EvidenceTimetamp = Timestamp
+) on AlertId
+| extend _json = parse_json(AdditionalFields)
+| extend SenderFromAddress = tostring(_json.Sender),
+         RecipientAddress = tostring(_json.Recipient)
+         | project-away _json
+         | extend ResearchSubject = replace_regex(EmailSubject,@"[a-f0-9]{10,}","")
+| project AlertTimetamp, EvidenceTimetamp, AccountUpn, EmailSubject, SenderFromAddress,RecipientAddress, NetworkMessageId, AlertId,ResearchSubject
+| join (EmailEvents |project SenderFromAddress, SenderFromDomain,RecipientEmailAddress, Timestamp, NetworkMessageId, Subject
+| project-rename EmailReceivedTimestamp = Timestamp
+) on NetworkMessageId
+| take 10
+| extend norm_subject = normalize_subject(Subject)

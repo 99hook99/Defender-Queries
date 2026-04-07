@@ -1,0 +1,12 @@
+let RMMSoftware = externaldata(RMMSoftware: string)[@"https://raw.githubusercontent.com/cyb3rmik3/Hunting-Lists/main/rmm-software.csv"] with (format="csv", ignoreFirstRecord=True);
+let ExclDevices = datatable(excludeddev :string)  // Add as many devices you would like to exclude
+ ["DeviceName1",
+  "DeviceName2",
+  "DeviceName3"];
+let Timeframe = 7d; // Choose the best timeframe for your investigation
+DeviceProcessEvents
+    | where Timestamp > ago(Timeframe)
+    | where ProcessVersionInfoCompanyName has_any (RMMSoftware)
+    | where not(DeviceName in (['ExclDevices']))
+    | project Timestamp, DeviceName, ActionType, FileName, FolderPath, ProcessVersionInfoCompanyName, ProcessVersionInfoProductName, ProcessCommandLine, AccountName, InitiatingProcessAccountName, InitiatingProcessFileName, InitiatingProcessCommandLine
+    | sort by Timestamp desc

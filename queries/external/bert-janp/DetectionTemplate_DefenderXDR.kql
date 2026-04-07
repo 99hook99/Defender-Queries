@@ -1,0 +1,3 @@
+// Paste your query here
+DeviceProcessEvents
+| where FileName == "Example.File"

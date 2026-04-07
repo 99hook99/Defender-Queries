@@ -1,0 +1,9 @@
+DeviceEvents
+| where ActionType == "PnpDeviceConnected"
+| extend PNPInfo = parse_json(AdditionalFields)
+| extend ClassName = tostring(PNPInfo.ClassName), DeviceDescription = tostring(PNPInfo.DeviceDescription), VendorIds = tostring(PNPInfo.VendorIds), DeviceId = tostring(PNPInfo.DeviceId)
+| extend PnPType = tostring(split(DeviceId, @"\", 0)[0])
+| where PnPType == "USB"
+| project-reorder ClassName, PnPType, DeviceDescription, VendorIds, DeviceId
+| summarize TotalEvents = count() by DeviceDescription
+| sort by TotalEvents

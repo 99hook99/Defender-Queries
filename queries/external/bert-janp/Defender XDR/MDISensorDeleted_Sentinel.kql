@@ -1,0 +1,4 @@
+CloudAppEvents
+| where ActionType == "SensorDeleted"
+| extend Sensor = tostring(parse_json(RawEventData).ResultDescription), InitiatorUpn = tostring(parse_json(RawEventData).UserId)
+| project-reorder TimeGenerated, Sensor, InitiatorUpn

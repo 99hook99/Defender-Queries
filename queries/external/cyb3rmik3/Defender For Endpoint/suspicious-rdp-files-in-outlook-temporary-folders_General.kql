@@ -1,0 +1,16 @@
+// Following part reflects Windows 10 endpoints
+let SuspiciousRdpFilesinOutlookWin10 = DeviceProcessEvents
+| where ProcessCommandLine has @'\AppData\Local\Microsoft\' 
+    and ProcessCommandLine has @'\Content.Outlook\' 
+    and ProcessCommandLine has @'.rdp';
+// Following part reflects Windows 11 endpoints
+let SuspiciousRdpFilesinOutlookWin11 = DeviceProcessEvents
+| where ProcessCommandLine has @'\AppData\Local\Microsoft\Olk\'
+    and ProcessCommandLine has @'.rdp';
+union SuspiciousRdpFilesinOutlookWin10,
+    SuspiciousRdpFilesinOutlookWin11
+| project TimeGenerated, 
+    DeviceName, 
+    ProcessCommandLine, 
+    AccountDomain, 
+    AccountName

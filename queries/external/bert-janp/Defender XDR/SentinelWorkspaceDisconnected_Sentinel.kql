@@ -1,0 +1,5 @@
+CloudAppEvents
+| where ActionType == "SentinelDisconnectWorkspace"
+| extend WorkspaceId = tostring(RawEventData.WorkspaceId), Status = tostring(RawEventData.Status), SubscriptionId = tostring(RawEventData.SubscriptionId), ResourceGroup = tostring(RawEventData.ResourceGroup), WorkspaceType = tostring(RawEventData.WorkspaceType)
+| project-rename InitiatedByAccountName = AccountDisplayName, InitiatedByAccounttId = AccountId
+| project-reorder TimeGenerated, InitiatedByAccountName, InitiatedByAccounttId, IPAddress, WorkspaceType, Status, WorkspaceId, ResourceGroup, SubscriptionId

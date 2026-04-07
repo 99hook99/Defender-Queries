@@ -1,0 +1,9 @@
+let NamedPipes = externaldata(pipe_name: string, metadata_description: string, metadata_tool:string,  metadata_category: string, metadata_link: string, metadata_priority:string, metadata_fp_risk: string, metadata_severity: string, metadata_tool_type: string, metadata_usage: string, metadata_comment: string, metadata_reference: string)[@"https://raw.githubusercontent.com/mthcht/awesome-lists/refs/heads/main/Lists/suspicious_named_pipe_list.csv"] with (format="csv", ignoreFirstRecord=True);
+let StandardizedPipes = NamedPipes
+    | project pipe_name = replace_string(tolower(pipe_name), "*", "");
+DeviceEvents
+| where TimeGenerated > ago(24h)
+| where ActionType == "NamedPipeEvent"
+| where split(tolower(AdditionalFields.PipeName), "\\")[-1] has_any(StandardizedPipes)
+| extend PipeName = AdditionalFields.PipeName, PipeNameChild = split(tolower(AdditionalFields.PipeName), "\\")[-1], FileOperation = AdditionalFields.FileOperation, NamedPipeEnd = AdditionalFields.NamedPipeEnd
+| project-reorder TimeGenerated, PipeName, FileOperation, DeviceName, AccountName, NamedPipeEnd

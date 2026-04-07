@@ -1,0 +1,7 @@
+CloudAppEvents
+| where Application == "Microsoft Teams"
+| where ActionType == "ReactedToMessage"
+| extend Emoji = tostring(RawEventData.MessageReactionType)
+| where isnotempty(Emoji)
+| summarize TotalUsage = count() by Emoji
+| sort by TotalUsage

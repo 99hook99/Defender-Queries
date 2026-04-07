@@ -1,0 +1,5 @@
+DeviceTvmHardwareFirmware 
+| where ComponentType == @"Processor"
+| project ProcFamily = parse_json(AdditionalFields)["Family"]
+| summarize count() by tostring(ProcFamily)
+| sort by ProcFamily asc

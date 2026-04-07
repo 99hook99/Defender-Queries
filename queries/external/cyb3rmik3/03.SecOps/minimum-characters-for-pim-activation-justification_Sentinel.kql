@@ -1,0 +1,7 @@
+let CharactersLength = 7; // Choose how many characters would be your mnimum justification
+let Timeframe = 90d; // Choose proper timeframe
+AuditLogs
+    | where TimeGenerated > ago(Timeframe)
+    | where OperationName == "Add member to role completed (PIM activation)"
+    | where strlen(ResultDescription) < CharactersLength
+    | summarize by Identity, ResultDescription

@@ -1,0 +1,6 @@
+CloudAppEvents
+| extend Workload = tostring(parse_json(RawEventData).Workload)
+| where Workload contains "Defender"
+| where ActionType endswith "Role"
+| extend RoleName = tostring(parse_json(RawEventData).RoleName), RolePermissions = tostring(parse_json(RawEventData).RolePermissions), AssignedGroups = tostring(parse_json(RawEventData).AssignedGroups)
+| project-reorder TimeGenerated, ActionType, AccountObjectId, RoleName, RolePermissions, AssignedGroups

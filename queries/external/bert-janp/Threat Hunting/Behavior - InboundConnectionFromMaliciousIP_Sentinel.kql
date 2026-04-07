@@ -1,0 +1,31 @@
+// Collect Threat Intel feed information from Ipsum (Level 4), more threat can be used. For examples see TI feeds on the page: https://github.com/Bert-JanP/Hunting-Queries-Detection-Rules/tree/main/Threat%20Hunting
+let ThreatIntelFeed = externaldata(DestIP: string)[@"https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt"] with (format="txt", ignoreFirstRecord=True);
+let IPRegex = '[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}';
+let MaliciousIP = materialize (
+       ThreatIntelFeed
+       | where DestIP matches regex IPRegex
+       | distinct DestIP
+        );
+// Collect the last information from each device which is internet facing.
+let InternetFacingInformation = DeviceInfo
+| extend InternetFacingInfo  = dynamic_to_json(AdditionalFields)
+// Parse all additional fields to queryable columns
+| extend  InternetFacingReason = extractjson("$.InternetFacingReason", InternetFacingInfo, typeof(string)), InternetFacingLocalPort = extractjson("$.InternetFacingLocalPort", InternetFacingInfo, typeof(int)), InternetFacingScannedPublicPort = extractjson("$.InternetFacingScannedPublicPort", InternetFacingInfo, typeof(int)), InternetFacingScannedPublicIp = extractjson("$.InternetFacingScannedPublicIp", InternetFacingInfo, typeof(string)), InternetFacingLocalIp = extractjson("$.InternetFacingLocalIp", InternetFacingInfo, typeof(string)),    InternetFacingTransportProtocol=extractjson("$.InternetFacingTransportProtocol", InternetFacingInfo, typeof(string)), InternetFacingLastSeen = extractjson("$.InternetFacingLastSeen", InternetFacingInfo, typeof(datetime))
+// Collect the max argument for each internet facing port
+| summarize arg_max(TimeGenerated, *) by DeviceId, InternetFacingLocalPort
+| where IsInternetFacing
+| project DeviceId, InternetFacingLocalIp, InternetFacingLocalPort, InternetFacingReason;
+// Collect the network related information for incomming connections
+DeviceNetworkEvents
+// Only display connections where an inbound connection has been accepted.
+| where ActionType == 'InboundConnectionAccepted'
+// Only show the devices that are internet facing, by joinint that information.
+| join kind=inner InternetFacingInformation on $left.DeviceId == $right.DeviceId
+// Make sure that the incomming connection is done to a port which is internet facing
+| where LocalPort == InternetFacingLocalPort
+// Filter on IPs that exsist in the Threat Intelligence Feed
+| where RemoteIP in (MaliciousIP)
+// If you do not want to see incomming SMTP (mail) actions remove the comment below
+// | where LocalPort != 25
+| project-rename ThreatIntelligenceIP=RemoteIP
+| project-reorder TimeGenerated, DeviceName, ThreatIntelligenceIP, LocalPort, InitiatingProcessFileName

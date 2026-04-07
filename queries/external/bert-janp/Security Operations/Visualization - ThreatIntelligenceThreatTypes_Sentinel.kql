@@ -1,0 +1,3 @@
+ThreatIntelligenceIndicator
+| summarize Total = count() by ThreatType
+| render piechart with(title="Threat Intelligence Threat Types")

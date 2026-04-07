@@ -1,0 +1,7 @@
+UrlClickEvents
+| where ActionType == 'ClickBlocked'
+// Only filter on Safe Links actions from mail
+| where Workload == 'Email'
+// join the email events
+| join kind=leftouter (EmailEvents | project NetworkMessageId, Subject, SenderFromAddress) on NetworkMessageId
+| project TimeGenerated, AccountUpn, Product = Workload, Url, ThreatTypes, Subject, SenderFromAddress, UrlChain

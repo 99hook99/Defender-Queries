@@ -1,0 +1,13 @@
+let CompromizedEmailAddress = ""; // Insert the email address of the compromised email address
+let Timeframe = 2d; // Choose the best timeframe for your investigation
+let EmailInformation = EmailEvents
+    | where RecipientEmailAddress == CompromizedEmailAddress
+    | where Timestamp > ago(Timeframe)
+    | where DeliveryAction != "Blocked"
+    | project Timestamp, NetworkMessageId, SenderMailFromAddress, SenderFromAddress, SenderDisplayName, ThreatNames;
+EmailInformation
+    | join (EmailPostDeliveryEvents 
+    | where ThreatTypes != ""
+    | project Timestamp, NetworkMessageId, Action, ActionType, ActionTrigger, ActionResult, DeliveryLocation, ThreatTypes, DetectionMethods
+) on NetworkMessageId
+| sort by Timestamp desc

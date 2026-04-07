@@ -1,0 +1,10 @@
+let Domain = tolower("kqlquery.com");
+let UnicodeDomain = unicode_codepoints_from_string(Domain);
+let TypoSquatMin = 0.75;
+let TypoSquatMax = 0.99; // If set to 1.0 it equals the domain.
+EmailEvents
+| where EmailDirection == "Inbound"
+| extend SenderDomainUnicode = unicode_codepoints_from_string(tolower(SenderFromDomain))
+| extend TypoSquadPercentage = jaccard_index(UnicodeDomain, SenderDomainUnicode)
+| where TypoSquadPercentage between (TypoSquatMin .. TypoSquatMax)
+| project-reorder TimeGenerated, SenderFromDomain, TypoSquadPercentage, RecipientEmailAddress, Subject

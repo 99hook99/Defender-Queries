@@ -1,0 +1,5 @@
+DeviceProcessEvents
+| where ActionType has "ProcessCreated"
+| where ProcessVersionInfoOriginalFileName has "wsl.exe"
+| where ProcessVersionInfoFileDescription has "Windows Subsystem for Linux"
+| summarize by DeviceName

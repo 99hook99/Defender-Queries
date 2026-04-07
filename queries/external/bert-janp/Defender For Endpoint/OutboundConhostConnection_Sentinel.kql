@@ -1,0 +1,5 @@
+let ValidDomains = dynamic(['.microsoft.com', '.digicert.com']);
+DeviceNetworkEvents
+| where InitiatingProcessFileName =~ "conhost.exe"
+| where not(ipv4_is_private(RemoteIP) or RemoteIP == "127.0.0.1")
+| where not(RemoteUrl has_any (ValidDomains))

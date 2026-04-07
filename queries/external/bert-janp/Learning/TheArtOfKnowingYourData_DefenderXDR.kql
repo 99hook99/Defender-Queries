@@ -1,0 +1,7 @@
+union withsource=TableName *
+| extend Action = coalesce(Operation, OperationName, OperationNameValue, ActionType)
+| where isnotempty(Action)
+| summarize TotalEvents = count() by Action, TableName
+| project-rename DataType = TableName
+| project Action, TotalEvents, DataType
+| top 10 by TotalEvents desc

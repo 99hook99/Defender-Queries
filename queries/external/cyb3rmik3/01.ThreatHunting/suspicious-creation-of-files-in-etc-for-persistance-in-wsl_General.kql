@@ -1,0 +1,13 @@
+let LinuxPerSuspicousCommands = dynamic(["/etc/ld.so.conf.d/", "/etc/cron.d/", "/etc/sudoers.d/", "/etc/rc.d/init.d/", "/etc/systemd/system/","/usr/lib/systemd/system/"]);
+let TimeFrame = 30d; // Choose the best timeframe for your investigation
+DeviceInfo
+    | where RegistryDeviceTag has "WSL2"
+    | project DeviceId
+| join ( DeviceFileEvents
+    | where Timestamp > ago(TimeFrame)
+    | where ActionType == "FileCreated"
+    | where FolderPath has_any (LinuxPerSuspicousCommands)
+    | project TimeGenerated, WSLDeviceID = DeviceId, DeviceName, FileName, FolderPath
+    )
+on $left.DeviceId == $right.WSLDeviceID
+| sort by TimeGenerated desc

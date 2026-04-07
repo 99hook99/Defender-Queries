@@ -1,0 +1,6 @@
+let Browsers = dynamic(['Chrome.exe', 'Firefox.exe', 'msedge.exe', 'Brave.exe']);
+let SuspiciousChildProcesses = dynamic(['cmd.exe', 'powershell.exe', 'bash.exe', 'csscript.exe', 'mshta.exe', 'msiexec.exe', 'rundll32.exe']);
+DeviceProcessEvents
+| where InitiatingProcessFileName in~ (Browsers)
+| where FileName in~ (SuspiciousChildProcesses) or ProcessVersionInfoOriginalFileName in~ (SuspiciousChildProcesses)
+| project-reorder  Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessCommandLine, AccountUpn, ProcessVersionInfoOriginalFileName

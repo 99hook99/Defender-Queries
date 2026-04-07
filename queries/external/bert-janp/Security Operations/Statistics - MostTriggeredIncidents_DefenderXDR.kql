@@ -1,0 +1,9 @@
+// Timeframe to collect incident statistics
+let timeframe = 7d;
+AlertInfo
+| where Timestamp > ago(timeframe)
+// Collect the first entry of each alert
+| summarize arg_min(Timestamp, *) by AlertId
+// Get the alert statistics
+| summarize Triggers = count(), AlertIds = make_set(AlertId) by Title
+| top 10 by Triggers

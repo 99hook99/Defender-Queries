@@ -1,0 +1,8 @@
+let WSLHostSuspicousList = dynamic(["curl", "/etc/shadow", "/etc/passwd", "cat", "--system", "root", "-e", "--exec", "bash", "/mnt/c/"]); 
+let TimeFrame = 30d; // Choose the best timeframe for your investigation
+DeviceProcessEvents
+    | where Timestamp > ago(TimeFrame)
+    | where InitiatingProcessFileName has "wsl.exe"
+    | where ProcessCommandLine has_any (WSLHostSuspicousList)
+    | project TimeGenerated, DeviceId, DeviceName, FileName, FolderPath, ProcessId, ProcessCommandLine, AccountDomain, AccountName
+    | sort by TimeGenerated desc

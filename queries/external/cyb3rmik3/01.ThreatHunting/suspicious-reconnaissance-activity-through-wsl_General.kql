@@ -1,0 +1,13 @@
+let WSLSuspicousList = dynamic(["whoami", "uname", "find", "grep", "cron -l", "/etc/shadow", "/etc/passwd", "/etc/sudoers", "w"]); 
+let TimeFrame = 30d; // Choose the best timeframe for your investigation
+DeviceInfo
+    | where RegistryDeviceTag has "WSL2"
+    | project DeviceId
+| join ( DeviceProcessEvents
+    | where Timestamp > ago(TimeFrame)
+    | where ActionType == "ProcessCreated"
+    | where ProcessCommandLine has_any (WSLSuspicousList)
+    | project TimeGenerated, WSLDeviceID = DeviceId, DeviceName, FileName, FolderPath, ProcessId, ProcessCommandLine, AccountDomain, AccountName
+    )
+on $left.DeviceId == $right.WSLDeviceID
+| sort by TimeGenerated desc

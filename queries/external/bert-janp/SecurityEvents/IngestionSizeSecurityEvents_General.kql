@@ -1,0 +1,5 @@
+let SearchWindow = 90d;
+SecurityEvent
+| where TimeGenerated > ago(SearchWindow)
+| summarize TotalEvents = count(), Bytes=sum(_BilledSize), GBs= round(sum(_BilledSize) / (1024 * 1024 * 1024), 2) by EventID, Activity
+| top 10 by Bytes

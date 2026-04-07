@@ -1,0 +1,3 @@
+ExposureGraphNodes
+| extend deepLinkInfo = parse_json(NodeProperties)["rawData"]["deepLink"]
+| where deepLinkInfo startswith "https://portal.azure.com/#view/Microsoft_Azure_EASM/"

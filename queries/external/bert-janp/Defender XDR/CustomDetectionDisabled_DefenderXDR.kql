@@ -1,0 +1,5 @@
+CloudAppEvents
+| where ActionType == "ChangeCustomDetectionRuleStatus"
+| where RawEventData.IsEnabled == "false"
+| extend RuleName = tostring(parse_json(RawEventData.RuleName)), Query = tostring(parse_json(RawEventData.Query)), Actor = tostring(parse_json(RawEventData.UserId)), IsEnabled = RawEventData.IsEnabled
+| project-reorder Timestamp, Actor, IsEnabled, RuleName, Query

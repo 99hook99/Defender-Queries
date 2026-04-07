@@ -1,0 +1,16 @@
+UrlClickEvents
+//| where ActionType == "ClickAllowed" // Uncomment if you need to filter by "ClickAllowed"
+| extend UrlChain = todynamic(UrlChain)
+| mv-expand UrlChain
+| where Url != UrlChain
+| extend UrlString = tostring(UrlChain)
+| summarize Count = count() by NetworkMessageId
+| where Count > 1
+| join kind=inner (
+    UrlClickEvents
+    | extend UrlChain = todynamic(UrlChain)
+    | mv-expand UrlChain
+//  | where Url != UrlChain
+    | extend UrlString = tostring(UrlChain)
+) on NetworkMessageId
+| sort by TimeGenerated asc

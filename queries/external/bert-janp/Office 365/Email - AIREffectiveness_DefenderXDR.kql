@@ -1,0 +1,3 @@
+EmailPostDeliveryEvents
+ where ActionType =~ Automated Remediation
+ summarize TotalNetworkMessages = dcount(NetworkMessageId) by bin(Timestamp, 1d), ActionResult

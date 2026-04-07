@@ -1,0 +1,9 @@
+DeviceNetworkEvents
+| where ActionType == "HttpConnectionInspected"
+| extend json = todynamic(AdditionalFields)
+| extend direction = tostring(json.direction), method = tostring(json.method), user_agent = tostring(json.user_agent)
+ | where direction == "Out"
+ | where method == "GET"
+ | where user_agent contains @"TeslaBrowser"
+| project Timestamp, DeviceName, RemoteIP, RemotePort, RemoteUrl
+| sort by Timestamp desc

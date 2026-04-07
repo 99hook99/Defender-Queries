@@ -1,0 +1,12 @@
+let WebPages = ExposureGraphNodes
+| where NodeLabel == "web-page"
+| project NodeId, NodeName;
+WebPages
+| join kind=inner (
+    ExposureGraphEdges
+    | where EdgeLabel == "affecting"
+    | where SourceNodeLabel == "Cve"
+    | project SourceNodeId, TargetNodeId, SourceNodeName
+) on $left.NodeId == $right.TargetNodeId
+| project Node=TargetNodeId, NodeName, VulnerabilityCVE=SourceNodeName
+| order by NodeName

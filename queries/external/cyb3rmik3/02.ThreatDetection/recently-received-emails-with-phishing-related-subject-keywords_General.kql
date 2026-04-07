@@ -1,0 +1,10 @@
+let CompromizedEmailAddress = ""; // Insert the email address of the compromised email address
+let SuspiciousKeywords = externaldata(Keywords: string)[@"https://raw.githubusercontent.com/cyb3rmik3/Hunting-Lists/main/phishing-keywords.csv"] with (format="csv", ignoreFirstRecord=True);
+let Timeframe = 2d; // Choose the best timeframe for your investigation
+EmailEvents 
+    | where RecipientEmailAddress == CompromizedEmailAddress
+    | where Timestamp > ago(Timeframe)
+    | where Subject has_any (SuspiciousKeywords)
+    | where DeliveryAction == "Delivered"
+    | project Timestamp, SenderMailFromAddress, SenderFromAddress, SenderDisplayName, SenderMailFromDomain, SenderFromDomain, SenderIPv4, AttachmentCount, UrlCount, LatestDeliveryAction
+    | sort by Timestamp desc

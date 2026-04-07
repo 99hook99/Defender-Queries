@@ -1,0 +1,2 @@
+DeviceProcessEvents
+| where InitiatingProcessFolderPath contains "windowsapps" and FileName =~ "powershell.exe" and ProcessCommandLine has_all ("windowsapps","-file",".ps1")

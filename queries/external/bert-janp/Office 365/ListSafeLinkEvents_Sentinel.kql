@@ -1,0 +1,3 @@
+UrlClickEvents
+| where ActionType == "ClickBlocked"
+| project TimeGenerated, Url, Workload, AccountUpn, ThreatTypes, IsClickedThrough

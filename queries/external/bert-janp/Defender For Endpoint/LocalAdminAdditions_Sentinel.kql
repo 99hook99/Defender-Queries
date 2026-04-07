@@ -1,0 +1,12 @@
+DeviceEvents
+| where ActionType == "UserAccountAddedToLocalGroup"
+| extend Details = parse_json(AdditionalFields)
+| extend
+    GroupName = tostring(Details.GroupName),
+    GroupDomainName = tostring(Details.GroupDomainName),
+    GroupSid = tostring(Details.GroupSid)
+// Filter Local Administrators
+| where GroupSid == "S-1-5-32-544"
+| summarize LocalAdmins = make_set(AccountSid) by DeviceName
+| extend TotalLocalAdmins = array_length(LocalAdmins)
+| sort by TotalLocalAdmins

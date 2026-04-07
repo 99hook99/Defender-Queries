@@ -1,0 +1,7 @@
+let Timeframe = 2d; // Choose the best timeframe for your investigation
+DeviceProcessEvents
+    | where TimeGenerated > ago(Timeframe)
+    | where ProcessVersionInfoProductName has "Rclone"
+    | where ProcessCommandLine contains @"rclone" or ProcessCommandLine contains @"--Launch"
+    | project TimeGenerated, DeviceName, FolderPath, FileName, ProcessCommandLine, ProcessCreationTime, AccountName, AccountUpn
+    | sort by TimeGenerated desc

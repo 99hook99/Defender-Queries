@@ -1,0 +1,36 @@
+// Based on https://github.com/SigmaHQ/sigma/blob/master/rules/windows/file/file_rename/file_rename_win_ransomware.yml
+// Add your most common file extentions in this list
+let OriginalExtension = dynamic(['.pdf', '.docx', '.jpg', '.xlsx', '.pptx', '.txt']);
+DeviceFileEvents
+| where ActionType == "FileRenamed"
+// Extract file extension
+| extend PreviousFileExtension = extract("\\.([a-z])*", 0, PreviousFileName)
+| extend NewFileExtension = extract(@'\.(.*)', 0, FileName)
+// File extension must be changed
+| where PreviousFileExtension != NewFileExtension
+| where PreviousFileExtension has_any (OriginalExtension)
+| extend RansomwareCheck = strcat(PreviousFileExtension, ".")
+// Check if the new file extension contains a possible ransomware extension (e.g. .docx.encrypted or .pdf.ezz
+| where NewFileExtension contains RansomwareCheck
+// Remove duplicate file extensions to limit false positives (e.g. .pdf.pdf or .docx.docx)
+| extend DuplicateExtensionCheck = split(NewFileExtension, ".")
+| where tostring(DuplicateExtensionCheck[1]) != tostring(DuplicateExtensionCheck[2])
+// Group by device and process to count renamed files
+| summarize 
+    FileCount = count(),
+    RenamedFiles = make_list(FileName),
+    Timestamp = arg_max(Timestamp, *) 
+    by DeviceName, InitiatingProcessAccountName
+// Filter for more than 10 files renamed
+| where FileCount > 10
+// Display results
+| project-reorder
+    Timestamp,
+    FileCount,
+    DeviceName,
+    InitiatingProcessAccountName,
+    RenamedFiles,
+    PreviousFileExtension,
+    PreviousFileName,
+    NewFileExtension,
+    FileName

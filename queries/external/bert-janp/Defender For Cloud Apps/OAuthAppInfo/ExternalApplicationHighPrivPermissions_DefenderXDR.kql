@@ -1,0 +1,6 @@
+OAuthAppInfo
+| where AppOrigin == "External"
+| where PrivilegeLevel == "High"
+| summarize arg_max(Timestamp, *) by OAuthAppId
+| extend PublisherName = tostring(VerifiedPublisher.displayName), DateAdded = todatetime(VerifiedPublisher.addedDateTime)
+| project AppName, OAuthAppId, ServicePrincipalId, AddedOnTime, PublisherName, AppOwnerTenantId

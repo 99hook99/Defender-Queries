@@ -1,0 +1,3 @@
+DeviceProcessEvents
+| where ProcessCommandLine has_all ("-nop", "powershell.exe")
+| summarize TotalCommands = dcount(ProcessCommandLine), ExecutedCommands = make_set(ProcessCommandLine) by DeviceName

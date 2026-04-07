@@ -1,0 +1,7 @@
+//let PriveledgedGroups = dynamic(['', '', '' ]); // Add User Groups that are legitemately allowed to have local admin priveledges on devices
+ExposureGraphEdges
+| where EdgeLabel == @"can authenticate to"
+| where SourceNodeLabel == @"group"
+//| where SourceNodeName !in~ (PriveledgedGroups)
+| where parse_json(EdgeProperties).rawData.userRightsOnDevice.isLocalAdmin == 'true'
+| summarize by SourceNodeName, TargetNodeName

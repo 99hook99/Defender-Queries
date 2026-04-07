@@ -1,0 +1,15 @@
+let Threshold = 1500; // Change depeding on org needs.
+let TimeFrame = 10m;
+let EntraUserIPInfo = SigninLogs
+    // Filter only successful logins
+    | where ResultType == 0
+    | summarize IPEventCount = count() by IPAddress, UserId
+    | where IPEventCount < 500;
+CloudAppEvents
+| where ActionType == "FileSyncUploadedFull"
+| extend BaseFolder = split(parse_url(ObjectName).Path, "/")[3]
+| summarize TotalEvents = count(), BaseFolders = make_set(BaseFolder, 25) by bin(TimeGenerated, TimeFrame), AccountId, AccountDisplayName, DeviceType, OSPlatform, IPAddress
+| where TotalEvents >= Threshold
+// Filter if the activity happens in combination with a rare IP
+| join kind=inner EntraUserIPInfo on $left.AccountId == $right.UserId
+| project TimeGenerated, TotalEvents, BaseFolders,  AccountId, AccountDisplayName, DeviceType, OSPlatform, IPAddress, IPEventCount

@@ -1,0 +1,15 @@
+//Detecting LNK stomping🦶
+// https://www.linkedin.com/posts/0x534c_windows-smart-app-control-smartscreen-bypass-activity-7226483357625282560-2kOU/
+
+//A bug in the handling of LNK files, can help threat actors bypass Smart App Control security controls designed to block untrusted applications. The below KQL should detect the behavioral signal of LNK stomping.
+
+DeviceFileEvents
+| where ActionType == "FileModified"
+| where FileName endswith ".lnk"
+| where InitiatingProcessFileName has "explorer.exe"
+
+// #MDE #DefenderXDR #BypassSmartAppControl #MotW
+
+// MITRE ATT&CK Mapping
+
+// This query is related to the MITRE ATT&CK technique T1547.009 - Boot or Logon Autostart Execution: Shortcut Modification1. This technique involves adversaries creating or modifying shortcuts that can execute a program during system boot or user login. By monitoring for modifications to .lnk files initiated by explorer.exe, this query helps detect potential malicious activities where shortcuts are altered to execute unwanted programs.

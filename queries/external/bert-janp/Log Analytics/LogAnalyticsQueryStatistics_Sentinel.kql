@@ -1,0 +1,3 @@
+LAQueryLogs
+| summarize UnqiueQueryCount = dcount(QueryText), TotalQueriesExecuted = count() by AADEmail
+| sort by AADEmail

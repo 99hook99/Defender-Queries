@@ -1,0 +1,7 @@
+let AzureIdRegex = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}";
+let ReplacementId = "<--AnonymizedAzureId-->";
+let AnonymizedMicrosoftGraphActivityLogs = () {
+    MicrosoftGraphActivityLogs
+    | extend RequestUri = replace_regex(RequestUri, AzureIdRegex, ReplacementId)
+};
+AnonymizedMicrosoftGraphActivityLogs

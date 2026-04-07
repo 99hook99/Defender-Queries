@@ -1,0 +1,9 @@
+let BinSize = 30m;
+let Threshold = 3;
+DeviceProcessEvents
+| where ActionType == "ProcessCreated"
+| where tolower(ProcessCommandLine) has "nltest.exe"
+| extend ParsedCommandLine = tolower(parse_command_line(ProcessCommandLine, "windows")[1])
+| where ParsedCommandLine has_any (NLTestParameters)
+| summarize TotalQueries = count(), TotalUniqueQueries = dcount(ProcessCommandLine), Commands = make_set(ProcessCommandLine, 100), arg_max(TimeGenerated, *) by DeviceName, AccountUpn, bin(TimeGenerated, BinSize)
+| where TotalQueries >= Threshold

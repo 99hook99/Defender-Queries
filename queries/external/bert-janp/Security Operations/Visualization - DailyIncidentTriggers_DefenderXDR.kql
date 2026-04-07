@@ -1,0 +1,6 @@
+AlertInfo
+| where Timestamp > ago(30d)
+// Collect the first entry of each alert
+| summarize arg_min(Timestamp, *) by AlertId
+| summarize Total = count() by bin(Timestamp, 1d)
+| render columnchart with(title="Incident triggers last 30 days")

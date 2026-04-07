@@ -1,0 +1,9 @@
+let Threshold = 1000;
+DeviceEvents
+| where ActionType =~ 'ShellLinkCreateFileEvent'
+| where FolderPath has 'Desktop'
+| extend ShellLinkIconPath = parse_json(AdditionalFields).ShellLinkIconPath, ShellLinkWorkingDirectory = parse_json(AdditionalFields).ShellLinkWorkingDirectory
+// Enrich data with FileProfile
+| invoke FileProfile(InitiatingProcessSHA256, 10000)
+| where GlobalPrevalence <= Threshold or isempty(GlobalPrevalence)
+| project-reorder TimeGenerated, ActionType, FolderPath, ShellLinkIconPath, ShellLinkWorkingDirectory, InitiatingProcessAccountUpn

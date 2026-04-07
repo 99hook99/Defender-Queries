@@ -1,0 +1,8 @@
+GraphAPIAuditEvents
+| extend ParsedUri = tostring(parse_url(RequestUri).Path)
+// Normalize Data
+| extend GraphAPIPath = tolower(replace_string(ParsedUri, "//", "/"))
+// Extract 
+| extend GraphAPIResource = tostring(split(GraphAPIPath, "/")[2])
+| summarize TotalRequest = count() by GraphAPIResource
+| sort by TotalRequest

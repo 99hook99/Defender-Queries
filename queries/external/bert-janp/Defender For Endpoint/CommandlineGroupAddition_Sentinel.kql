@@ -1,0 +1,24 @@
+// Source Sensitive Groups: https://techcommunity.microsoft.com/t5/security-compliance-and-identity/alert-when-a-group-is-added-to-a-sensitive-active-directory/ba-p/3436868
+let SensitiveGroupName = pack_array(  // Declare Sensitive Group names. Add any groups that you manually tagged as sensitive
+    'Account Operators',
+    'Administrators',
+    'Domain Admins', 
+    'Backup Operators',
+    'Domain Controllers',
+    'Enterprise Admins',
+    'Enterprise Read-only Domain Controllers',
+    'Group Policy Creator Owners',
+    'Incoming Forest Trust Builders',
+    'Microsoft Exchange Servers',
+    'Network Configuration Operators',
+    'Print Operators',
+    'Read-only Domain Controllers',
+    'Replicator',
+    'Schema Admins',
+    'Server Operators'
+);
+DeviceProcessEvents
+| where FileName in ("net.exe", "net1.exe")
+| where ProcessCommandLine has_all ("add", "group") 
+| extend GroupIsSentitive = iff(ProcessCommandLine has_any (SensitiveGroupName), 1, 0)
+| project TimeGenerated, DeviceName, ProcessCommandLine, InitiatingProcessCommandLine, GroupIsSentitive

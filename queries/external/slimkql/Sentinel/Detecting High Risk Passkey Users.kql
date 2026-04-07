@@ -1,0 +1,24 @@
+// Detecting High Risk Passkey Users
+// https://www.linkedin.com/posts/activity-7193644152645959682-ylGM/
+
+// As the use of passkeys becomes more popular due to their phishing-resistant advantages and their additional security through device biometrics, it’s important to recognize that there is still a risk of device compromise or potential compromise of the password manager storing the sync-able passkey. Consequently, security operations must actively monitor passkey users who are considered high risk and be prepared to revoke their passkeys when necessary or exclude them from the FIDO sign in policy.
+
+// KQL for detecting High Risk Passkey Users: 
+
+SigninLogs
+| where RiskEventTypes_V2 != "[]"
+| where RiskLevelAggregated == "high"
+| where RiskLevelDuringSignIn == "high"
+| where RiskState == "atRisk"
+| where AuthenticationDetails contains "FIDO2 security key"
+
+// MITRE ATT&CK Mapping
+
+// Based on the operations and objectives of the KQL code, the following MITRE ATT&CK techniques are relevant:
+
+// T1078 - Valid Accounts:
+// This technique involves the use of valid accounts to gain access to systems. High-risk sign-ins with FIDO2 security keys could indicate an attempt to use compromised credentials.
+// T1556 - Modify Authentication Process:
+// This technique involves modifying the authentication process to bypass security controls. High-risk sign-ins with specific authentication methods like FIDO2 security keys could be part of an // attempt to manipulate the authentication process.
+// T1071 - Application Layer Protocol:
+// This technique involves the use of application layer protocols for command and control. High-risk sign-ins could be part of an adversary’s attempt to establish a foothold using legitimate protocols.

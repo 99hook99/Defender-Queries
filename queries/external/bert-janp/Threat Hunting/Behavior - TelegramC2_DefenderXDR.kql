@@ -1,0 +1,9 @@
+DeviceNetworkEvents
+| where RemoteUrl contains "api.telegram.org"
+| project 
+    Timestamp,
+    DeviceName,
+    InitiatingProcessFileName,
+    InitiatingProcessCommandLine,
+    InitiatingProcessAccountName,
+    InitiatingProcessAccountDomain

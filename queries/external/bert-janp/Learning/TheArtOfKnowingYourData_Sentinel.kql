@@ -1,0 +1,7 @@
+union *
+| extend Action = coalesce(Operation, OperationName, OperationNameValue, ActionType)
+| where isnotempty(Action)
+| summarize TotalEvents = count() by Action, Type
+| project-rename DataType = Type
+| project Action, TotalEvents, DataType
+| top 10 by TotalEvents desc

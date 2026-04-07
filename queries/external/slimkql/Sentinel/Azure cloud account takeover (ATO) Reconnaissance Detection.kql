@@ -1,0 +1,36 @@
+//Azure cloud account takeover (ATO) Reconnaissance Detection
+//https://www.linkedin.com/posts/activity-7179350804431085569-CcT_/
+
+//In Feb, Proofpoint published "Ongoing Malicious Campaign Impacting Microsoft Azure Cloud Environments"
+//https://lnkd.in/d7A_evhi
+
+//Based on the published blog data, I was able to construct a KQL threat hunting query to correlate against Microsoft Graph commands used by threat actors to conduct tenant resource reconnaissance. Do make sure you send Microsoft Graph activity logs to a Log Analytics workspace (https://lnkd.in/ghqQiiEg) in order to be able to detect this type of reconnaissance.
+
+//Below are the two types of graph commands your KQL needs to check in the RequestUri for potential tenant reconnaissance activity.
+
+//List Tenants
+//https://lnkd.in/gtPB_Mvq
+
+//List subscribedSkus
+//https://lnkd.in/gmi8uEa8 
+
+//The below KQL help you check if you are potentially impacted by this ATO campaign.
+
+let ATOIPs =
+SigninLogs
+| where TimeGenerated > ago(90d)
+| where UserAgent == "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+| where AppDisplayName == "OfficeHome"
+| distinct IPAddress;
+MicrosoftGraphActivityLogs
+| where TimeGenerated > ago(90d)
+| where IPAddress has_any (ATOIPs)
+| where RequestUri contains "tenantRelationships" or RequestUri contains "subscribedSkus"
+
+// MITRE ATT&CK Mapping
+
+// KQL code is designed to detect suspicious activities related to specific user agents and application usage, and then correlate these activities with specific Microsoft Graph API requests. The associated MITRE ATT&CK techniques primarily involve the use of valid cloud accounts and web protocols for communication and discovery activities.
+
+// T1087.004: Account Discovery: Cloud Account - Identifying cloud accounts and their roles.
+// T1078.004: Valid Accounts: Cloud Accounts - Continued use of valid credentials to access cloud services.
+// T1071.001: Application Layer Protocol: Web Protocols - The use of web protocols for communication.

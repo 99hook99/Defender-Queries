@@ -1,0 +1,6 @@
+DeviceProcessEvents
+// Define timeframe
+| where Timestamp > ago(1d)
+| where FileName has_any (@"powershell.exe", @"pwsh.exe", @"powershell_ise.exe")
+| where ProcessCommandLine contains "base64"
+| summarize arg_max(Timestamp, *) by DeviceName

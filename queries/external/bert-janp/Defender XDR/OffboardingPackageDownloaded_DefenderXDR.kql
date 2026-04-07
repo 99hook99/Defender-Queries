@@ -1,0 +1,5 @@
+CloudAppEvents
+| where ActionType == "DownloadOffboardingPkg"
+| extend UserId = tostring(parse_json(RawEventData).UserId), ClientIP = tostring(parse_json(RawEventData).ClientIP)
+| project-rename InitiatedByAccountName = AccountDisplayName, InitiatedByAccounttId = AccountId
+| project-reorder Timestamp, InitiatedByAccountName, UserId, ClientIP, ActionType

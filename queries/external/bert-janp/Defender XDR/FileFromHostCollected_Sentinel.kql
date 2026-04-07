@@ -1,0 +1,5 @@
+CloudAppEvents
+| where ActionType in ('LiveResponseGetFile', 'DownloadFile')
+| extend FileName = tostring(RawEventData.FileName), FileSHA256 = tostring(RawEventData.FileSHA256), FileSize = tostring(RawEventData.FileSize)
+| project-rename InitiatedByAccountName = AccountDisplayName, InitiatedByAccounttId = AccountId
+| project-reorder TimeGenerated, InitiatedByAccountName, InitiatedByAccounttId, IPAddress, FileName, FileSHA256, FileSize

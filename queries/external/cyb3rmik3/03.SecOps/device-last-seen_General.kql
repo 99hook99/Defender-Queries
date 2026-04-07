@@ -1,0 +1,6 @@
+DeviceInfo
+| where DeviceName has "[insert devicename here]"
+| extend LastSeen = Timestamp
+| where Timestamp >= ago(1h)
+| summarize LastSeen = arg_max(Timestamp, *) by DeviceId
+| project LastSeen, DeviceId, DeviceName

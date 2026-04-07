@@ -8,10 +8,10 @@ A curated, auto-synced collection of KQL queries for Microsoft Defender and othe
 
 | | |
 |---|---|
-| External queries (source files) | 39 |
+| External queries (source files) | 723 |
 | Custom queries | 1 |
-| Sources | 1 |
-| Last sync | 2026-04-07 09:54:28 UTC |
+| Sources | 4 |
+| Last sync | 2026-04-07 11:11:05 UTC |
 
 ## Recently Added
 
@@ -23,8 +23,10 @@ See **[RECENT.md](RECENT.md)** for the latest 25 additions.
 
 | Group | Repository | Platform | Format | Files | Description |
 |-------|-----------|----------|--------|-------|-------------|
-| **community** | [Bert-JanP Hunting Queries](https://github.com/Bert-JanP/Hunting-Queries-Detection-Rules) | MDE, Sentinel, DefenderXDR | `markdown` | 39 | Large collection of hunting queries and detection rules (MD format) |
-| **community** | [KQL Cafe – KustoCon](https://github.com/KQLCafe/kustocon) | Sentinel, MDE | `kql` | 0 | KQL Cafe conference queries and demos |
+| **community** | [Bert-JanP Hunting Queries](https://github.com/Bert-JanP/Hunting-Queries-Detection-Rules) | MDE, Sentinel, DefenderXDR | `markdown` | 309 | Large collection of hunting queries and detection rules across Azure AD, MDE, Sentinel and XDR |
+| **community** | [cyb3rmik3 KQL Threat Hunting](https://github.com/cyb3rmik3/KQL-threat-hunting-queries) | MDE, Sentinel, DefenderXDR, Azure | `markdown` | 86 | Threat hunting and detection queries organized by product: Azure, MDE, Sentinel, Office365, EASM, MDVM |
+| **community** | [SlimKQL Hunting Queries](https://github.com/SlimKQL/Hunting-Queries-Detection-Rules) | Sentinel, DefenderXDR, Azure, ADX | `kql` | 320 | Standalone KQL files organized by product: Azure, DefenderXDR, Sentinel, ADX — includes IOC lists |
+| **community** | [KQL Cafe – KustoCon](https://github.com/KQLCafe/kustocon) | Sentinel, MDE | `kql` | 8 | KQL Cafe conference queries and demos |
 
 > To add a new source: edit [`sources.yaml`](sources.yaml) and run `python scripts/sync.py`.
 

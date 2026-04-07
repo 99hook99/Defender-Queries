@@ -1,0 +1,11 @@
+let OpenPhish = externaldata(Domain: string)[@"https://raw.githubusercontent.com/openphish/public_feed/refs/heads/main/feed.txt"] with (format="txt", ignoreFirstRecord=True);
+UrlClickEvents
+| extend UrlChain = todynamic(UrlChain)
+| mv-expand UrlChain
+//| where Url != UrlChain // You can choose to remove the initial URL if you already use another analytic
+//| where ActionType == "ClickAllowed" // Click has been allowed by SafeLinks
+| extend ParsedUrl = parse_url(tostring(UrlChain))
+| extend ParsedUrl_Domain = parse_json(ParsedUrl)["Host"]
+| extend DomainParts = split(ParsedUrl_Domain, ".")  // Split the domain into parts by "."
+| extend CleanDomain = strcat_array(array_slice(DomainParts, array_length(DomainParts)-2, 2), ".")
+| where CleanDomain in~ (OpenPhish)

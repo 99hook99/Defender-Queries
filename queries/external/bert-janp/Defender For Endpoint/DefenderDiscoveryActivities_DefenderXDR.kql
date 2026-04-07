@@ -1,0 +1,11 @@
+let ProcessBased = DeviceProcessEvents
+| where ProcessCommandLine has "Get-MpPreference"
+| extend Table = "DeviceProcessEvents"
+| project-reorder Table, Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName;
+let EventBased = DeviceEvents
+| extend Command = parse_json(AdditionalFields).Command
+| where  Command == "Get-MpPreference"
+| extend ScriptLocation = extract(@"literalPath '(.*?)'", 0, InitiatingProcessCommandLine)
+| extend Table = "DeviceEvents"
+| project-reorder Table, Timestamp, DeviceName, InitiatingProcessCommandLine, InitiatingProcessParentFileName, ScriptLocation;
+union ProcessBased, EventBased

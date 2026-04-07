@@ -1,0 +1,13 @@
+let Timeframe = 7d; // Choose the best timeframe for your investigation
+let SuspiciousAnydeskFileCertificate = DeviceFileCertificateInfo
+    | where Timestamp > ago(Timeframe)
+    | where CertificateSerialNumber =~ "0dbf152deaf0b981a8a938d53f769db8" // Compromised Certificate Serial Number
+    | where Issuer == "DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1"
+    | project Timestamp, DeviceName, SHA1;
+SuspiciousAnydeskFileCertificate
+    | join (DeviceProcessEvents
+    | where Timestamp > ago(Timeframe)
+    | where ProcessVersionInfoCompanyName !contains @"AnyDesk"
+    | project SHA1, ActionType, FileName, FolderPath, ProcessVersionInfoCompanyName, ProcessVersionInfoProductName, ProcessCommandLine, AccountName, InitiatingProcessAccountName, InitiatingProcessFileName, InitiatingProcessCommandLine
+    )on SHA1
+    | sort by Timestamp desc

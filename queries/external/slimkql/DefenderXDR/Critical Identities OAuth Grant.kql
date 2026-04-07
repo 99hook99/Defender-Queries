@@ -1,0 +1,30 @@
+// Critical Identities OAuth Grant
+// https://www.linkedin.com/posts/0x534c_defenderxdr-customdetection-exposuremanagement-activity-7182677630733725696-MF_U/
+
+// Custom DefenderXDR detection rule for critical identities marked by exposure management for performing an OAuth grant to an application. Bear in mind critical identites hold highly privilege roles, any OAuth grant to any rouge application would be disastrous. Therefore it is vital for SecOps to monitor organization's critical identities OAuth grant unless you have an OAuth Cloud App policy that blocks all grant by default. 🫡
+
+let CriticalIdentities =
+ExposureGraphNodes
+| where set_has_element(Categories, "identity")
+| where isnotnull(NodeProperties.rawData.criticalityLevel) 
+and NodeProperties.rawData.criticalityLevel.criticalityLevel < 4
+| extend AccountID = tostring(NodeProperties.rawData.accountObjectId)
+| distinct AccountID;
+CloudAppEvents
+| where ActivityType == "Add"
+| where ActionType == @"Consent to application."
+| where AccountId has_any(CriticalIdentities)
+
+
+// MITRE ATT&CK Mapping
+
+// The KQL query can be mapped to the following MITRE ATT&CK techniques:
+
+// T1078 - Valid Accounts:
+// The query identifies critical accounts that might be used for legitimate access but could be leveraged by adversaries for malicious purposes.
+
+// T1071.001 - Application Layer Protocol: Web Protocols:
+// The detection of “Consent to application” events can be related to the use of web protocols for application consent, which might be exploited by adversaries to gain access to cloud applications.
+
+// T1098 - Account Manipulation:
+// The query looks for consent to applications, which can be a form of account manipulation if adversaries are granting permissions to malicious applications.

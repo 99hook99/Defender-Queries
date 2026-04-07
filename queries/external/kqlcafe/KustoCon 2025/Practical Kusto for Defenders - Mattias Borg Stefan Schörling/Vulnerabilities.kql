@@ -1,0 +1,193 @@
+// Please Note
+// Some of the queries are research and must be validated
+// This file contains multiple queries
+// Use, share as liked
+// Community builds a better world
+
+
+// v1.2
+// Defenderboys
+let nodes = 
+  ExposureGraphNodes
+    | where NodeLabel == "user"
+    | extend AccountNodeId = NodeId;
+let edges = ExposureGraphEdges
+| where EdgeLabel == "frequently logged in by"
+| extend FrequentlyLoggedInBy = TargetNodeId, FrequentlyLoggedInTo = SourceNodeId
+;
+let graph = 
+edges
+| make-graph FrequentlyLoggedInBy --> FrequentlyLoggedInTo with nodes on AccountNodeId
+| graph-to-table edges with_source_id=AccountNodeId with_target_id=TargetId
+| join (nodes) on  $left.FrequentlyLoggedInBy == $right.NodeId
+| mv-apply EntityIds on (
+                            summarize AccountIdentifiers = make_bag(
+                                                            pack(
+                                                                    tostring(EntityIds.type), 
+                                                                    EntityIds.id
+                                                                )
+                                                        )
+                        )
+| project FrequentlyUserBy = TargetNodeName, DeviceName = SourceNodeName,AccountProperties=NodeProperties,AccountIdentifiers
+| extend UserCountry = tostring(AccountProperties.rawData.country)
+| extend AccountSid = tostring(AccountIdentifiers.SecurityIdentifier);
+DeviceInfo
+    | where OSPlatform in("WindowsXp","Windows7","Windows10","Windows11","Windows11WVD") // Removing IOT Devices
+    | summarize arg_max(Timestamp,*) by DeviceId
+| join kind=inner (
+        DeviceTvmSoftwareVulnerabilitiesKB
+        //| where IsExploitAvailable == 1 //FILTER
+            | join DeviceTvmSoftwareVulnerabilities on CveId
+            | project-away *1
+        | extend VendorSoftwareNVersion = strcat(SoftwareVendor,"-",SoftwareName,"-",SoftwareVersion)
+            | join kind=leftouter (  
+                                        DeviceTvmSoftwareEvidenceBeta
+                                        | extend VendorSoftwareNVersion = strcat(SoftwareVendor,"-",SoftwareName,"-",SoftwareVersion)
+              ) on DeviceId, VendorSoftwareNVersion
+              | project-away *1
+) on DeviceId
+| extend DeviceId = coalesce(DeviceId,DeviceId1),
+         DeviceName = coalesce(DeviceName,DeviceName1)
+| project-away *1
+| extend EvidencePath = array_concat(RegistryPaths,DiskPaths)
+| extend CveInfo = pack("CveId", CveId, 
+                         "CvssScore", CvssScore, 
+                         "VulnerabilitySeverityLevel", VulnerabilitySeverityLevel)
+| summarize make_list(CveInfo), EvidencePath = make_list(EvidencePath) by VendorSoftwareNVersion, DeviceName,DeviceId, IsExploitAvailable, MachineGroup, OnboardingStatus, OSPlatform, OSVersionInfo, DeviceManualTags
+| join kind=leftouter (  //GetNetworkAdapters
+                        DeviceNetworkInfo
+                        |where NetworkAdapterStatus == "Up"
+                        | mv-expand todynamic(IPAddresses)
+                        | extend IPInfo = parse_json(tostring(IPAddresses))
+                        | where tostring(IPInfo) matches regex @":*(\d{1,3}\.){3}\d{1,3}"
+                        | where tostring(IPInfo) !contains "169.254"
+                        | summarize arg_max(Timestamp,*) by DeviceId
+                        | extend IPAddress = tostring((parse_json(tostring(IPInfo))).IPAddress)
+                        | project DeviceId,DeviceName,IPAddress
+) on DeviceId //End GetNetworkAdapter
+| project-away *1
+| join kind=leftouter (graph) on DeviceName
+| project-away DeviceName1,AccountProperties, AccountSid
+
+
+/////////////////////////////////////////77
+
+let FilterRemove = dynamic(["Android","iOS"]);
+DeviceTvmInfoGathering
+| where OSPlatform !in(FilterRemove)
+| extend AvMode = case(tostring(AdditionalFields.AvMode) == '0', 'Active',
+  tostring(AdditionalFields.AvMode) == '1', 'Passive',
+  tostring(AdditionalFields.AvMode) == '2', 'Disabled',
+  tostring(AdditionalFields.AvMode) == '5', 'PassiveAudit',
+  tostring(AdditionalFields.AvMode) == '4', 'EDR Blocked' ,'Unknown'
+  ),
+ AvEngineVersion = AdditionalFields.AvEngineVersion,
+ AvSignatureVersion = AdditionalFields.AvSignatureVersion,
+ AvPlatformVersion = AdditionalFields.AvPlatformVersion,
+ CloudProtectionState = case(
+                        AdditionalFields.CloudProtectionState == 0,"Default blocking level",
+                        AdditionalFields.CloudProtectionState == 1,"Moderate blocking level",
+                        AdditionalFields.CloudProtectionState == 2,"High blocking level",
+                        AdditionalFields.CloudProtectionState == 4,"High+ blocking level",
+                        AdditionalFields.CloudProtectionState == 6,"Zero tolerance blocking level",
+                        "Default"
+                    ),
+ AvEngineUpdateTime = AdditionalFields.AvEngineUpdateTime,
+ AvSignatureUpdateTime = AdditionalFields.AvSignatureUpdateTime,
+ AvPlatformUpdateTime = AdditionalFields.AvPlatformUpdateTime,
+ AvIsSignatureUptoDate = AdditionalFields.AvIsSignatureUptoDate,
+ AvIsEngineUptodate = AdditionalFields.AvIsEngineUptodate,
+ AvIsPlatformUptodate = AdditionalFields.AvIsPlatformUptodate,
+ AvSignatureRing = case(
+                        AdditionalFields.AvSignatureRing == 2,"Beta Channel",
+                        AdditionalFields.AvSignatureRing == 3,"Current Channel (Preview)",
+                        AdditionalFields.AvSignatureRing == 4,"Current Channel (Staged)",
+                        AdditionalFields.AvSignatureRing == 5,"Current Channel (Broad)",
+                        AdditionalFields.AvSignatureRing == 6,"Critical - Time delay",
+                        "Default"
+                    ),
+ AvPlatformRing = case(
+                        AdditionalFields.AvPlatformRing == 2,"Beta Channel",
+                        AdditionalFields.AvPlatformRing == 3,"Current Channel (Preview)",
+                        AdditionalFields.AvPlatformRing == 4,"Current Channel (Staged)",
+                        AdditionalFields.AvPlatformRing == 5,"Current Channel (Broad)",
+                        AdditionalFields.AvPlatformRing == 6,"Critical - Time delay",
+                        "Default"
+                    ),
+ AvEngineRing = case(
+                        AdditionalFields.AvEngineRing == 2,"Beta Channel",
+                        AdditionalFields.AvEngineRing == 3,"Current Channel (Preview)",
+                        AdditionalFields.AvEngineRing == 4,"Current Channel (Staged)",
+                        AdditionalFields.AvEngineRing == 5,"Current Channel (Broad)",
+                        AdditionalFields.AvEngineRing == 6,"Critical - Time delay",
+                        "Default"
+                    )
+ | project-away AdditionalFields
+ | extend isDomainJoined = iff(DeviceName endswith ".ad.almi.se",true,false)
+ 
+
+ //////////////////////////////////////////77
+
+
+ DeviceTvmSoftwareVulnerabilities
+| where SoftwareName contains "windows_"
+| extend MissingUpdate = tostring(extract(@"^(\w+\s\d{4})",1,RecommendedSecurityUpdate)),
+         UpdateYear = tostring(extract(@"(\d{4})",1,RecommendedSecurityUpdate))
+| extend OSType = iff(SoftwareName has "server","WindowsServer","WindowsClient")
+| summarize CveIds=make_set(CveId) by DeviceId, DeviceName, MissingUpdate, OSType, OSArchitecture, OSPlatform
+| extend MissingUpdates = bag_pack(MissingUpdate,bag_pack("CveIds",CveIds))
+| summarize MissingUpdates=make_set(MissingUpdates) by DeviceId, DeviceName, OSType, OSArchitecture, OSPlatform
+| join
+    (
+    DeviceTvmSoftwareVulnerabilities
+    | where SoftwareName contains "windows_"
+    | extend MissingUpdate = tostring(extract(@"^(\w+\s\d{4})",1,RecommendedSecurityUpdate)),
+            UpdateYear = tostring(extract(@"(\d{4})",1,RecommendedSecurityUpdate))
+    | extend MonthNumber = case
+                                (
+                                MissingUpdate has "January","01",
+                                MissingUpdate has "February","02",
+                                MissingUpdate has "March","03",
+                                MissingUpdate has "April","04",
+                                MissingUpdate has "May","05",
+                                MissingUpdate has "June","06",
+                                MissingUpdate has "July","07",
+                                MissingUpdate has "August","08",
+                                MissingUpdate has "September","09",
+                                MissingUpdate has "October","10",
+                                MissingUpdate has "November","11",
+                                MissingUpdate has "December","12",
+                                "Default"
+                                ) 
+| extend YearMonth = strcat(UpdateYear,MonthNumber)
+| project DeviceId,YearMonth,MissingUpdate,UpdateYear,MonthNumber
+| summarize arg_min(YearMonth,*) by DeviceId) on DeviceId
+| extend LastAppliedUpdateMonth = tostring(iff(MonthNumber == "01",LastAppliedUpdateMonth = 12, toint(MonthNumber) - 1)),
+         LastAppliedUpdateYear = tostring(iff(MonthNumber == "01",toint(UpdateYear) - 1, toint(UpdateYear)))
+| extend LastUpdateMonthstring = case
+                    (
+                        LastAppliedUpdateMonth == 01,"January",
+                        LastAppliedUpdateMonth == 02, "February",
+                        LastAppliedUpdateMonth == 03, "March",
+                        LastAppliedUpdateMonth == 04, "April",
+                        LastAppliedUpdateMonth == 05, "May",
+                        LastAppliedUpdateMonth == 06, "June",
+                        LastAppliedUpdateMonth == 07, "July",
+                        LastAppliedUpdateMonth == 08, "August",
+                        LastAppliedUpdateMonth == 09, "September",
+                        LastAppliedUpdateMonth == 10, "October",
+                        LastAppliedUpdateMonth == 11, "November",
+                        LastAppliedUpdateMonth == 12, "December",
+                        "Default"
+                    ) 
+| extend LastAppliedUpdate = strcat(LastUpdateMonthstring," ", LastAppliedUpdateYear, " Security Updates")
+| extend LastUpdate = tostring(strcat(LastAppliedUpdateYear,iff(toint(LastAppliedUpdateMonth) < 10,tostring(strcat(@"0",LastAppliedUpdateMonth)),LastAppliedUpdateMonth)))
+| project-away MissingUpdate,UpdateYear,MonthNumber,*1,LastAppliedUpdateMonth,LastAppliedUpdateYear,YearMonth, LastUpdateMonthstring
+| join kind=leftouter  (
+                        DeviceInfo 
+                            | where Timestamp >= ago(30d)
+                            | summarize arg_max(Timestamp,*) by DeviceId
+                            | project LastDeviceInfoUpdate=Timestamp, DeviceId
+                          ) on DeviceId
+                          | project-away *1
+  

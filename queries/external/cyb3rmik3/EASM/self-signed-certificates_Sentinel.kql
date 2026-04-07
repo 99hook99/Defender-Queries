@@ -1,0 +1,5 @@
+EasmRisk_CL 
+| where MetricDisplayName_s == "ASI: Self Signed Certificates"
+| extend AssetType_Domain = tostring(parse_json(AssetDiscoveryAuditTrail_s)[0].AssetType)
+| extend AssetType_Host = tostring(parse_json(AssetDiscoveryAuditTrail_s)[1].AssetType)
+| project AssetType_Domain, AssetType_Host, WorkspaceName_s

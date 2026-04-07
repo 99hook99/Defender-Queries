@@ -1,0 +1,37 @@
+// Critical Monitor for Critical Assets
+// https://www.linkedin.com/posts/activity-7189844353610088448-BajA/
+
+// Custom DefenderXDR KQL Monitor for Tier 0 Critical Identities on High Security Alerts:
+
+let HighlyPrivilegedAdmins =
+ExposureGraphNodes
+| where set_has_element(Categories, "identity")
+| where isnotnull(NodeProperties.rawData.criticalityLevel) and 
+NodeProperties.rawData.criticalityLevel.criticalityLevel==0 
+| extend EntraObjectID = NodeProperties.rawData.accountObjectId
+| project EntraObjectID;
+AlertInfo
+| join AlertEvidence on AlertId
+| extend ReportId = AlertId
+| where Severity == "High"
+| where AccountObjectId has_any(HighlyPrivilegedAdmins)
+
+
+// MITRE ATT&CK Mapping
+
+// Based on the KQL code, the following MITRE ATT&CK techniques are relevant:
+
+// T1078 - Valid Accounts:
+// The query identifies highly privileged accounts, which could be used by adversaries to gain unauthorized access.
+
+// T1087 - Account Discovery:
+// The process of identifying highly privileged accounts aligns with account discovery techniques.
+
+// T1071 - Application Layer Protocol:
+// The query joins alert information, which could involve detecting communication over application layer protocols.
+
+// T1566 - Phishing:
+// High severity alerts could be related to phishing attempts targeting privileged accounts.
+
+// T1210 - Exploitation of Remote Services:
+// High severity alerts involving privileged accounts could indicate exploitation attempts on remote services.
