@@ -1,0 +1,5 @@
+let TimeFrame = 30d;
+SigninLogs
+| where TimeGenerated > ago(TimeFrame)
+| where ResultType == 0
+| summarize Total = count() by AuthenticationProtocol, bin(TimeGenerated, 1d)

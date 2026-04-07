@@ -1,0 +1,4 @@
+AADUserRiskEvents
+| where TimeGenerated > ago(90d)
+| summarize count() by bin(TimeGenerated, 1d), RiskEventType
+| render columnchart

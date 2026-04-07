@@ -1,0 +1,3 @@
+SigninLogs
+| summarize count() by UserAgent
+| sort by count_

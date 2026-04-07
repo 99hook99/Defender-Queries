@@ -1,0 +1,7 @@
+IdentityInfo
+| where UserType == "Guest"
+// Collect the most recent information for each Guest user
+| summarize arg_max(TimeGenerated, *) by AccountUPN
+// Only show Guests that have roles in your tentant
+| where array_length(AssignedRoles) > 0
+| project AccountUPN, AssignedRoles, IsAccountEnabled

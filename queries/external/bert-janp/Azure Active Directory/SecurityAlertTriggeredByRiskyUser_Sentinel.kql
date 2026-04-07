@@ -1,0 +1,18 @@
+let RiskyUsers = AADRiskyUsers
+     | where TimeGenerated > ago(90d)
+     // Only user active risky users. If you want to look for all users that have been risky, remove the line below.
+     | where RiskState in~ ('atRisk', 'confirmedCompromised')
+     | distinct UserPrincipalName;
+SecurityAlert
+// Only get the latest status of each alert
+| summarize arg_max(TimeGenerated, *) by SystemAlertId
+// Filter only on RiskyUsers
+| where Entities has_any (RiskyUsers)
+// Collect the user from the entities
+| extend
+     DisplayName = extract(@',"DisplayName":"(.*?)"', 1, Entities),
+     Upn = extract(@'"Upn":"(.*?)"', 1, Entities),
+     UserPrincipalName = extract(@'"UserPrincipalName":"(.*?)"', 1, Entities)
+// Combine the entity fields into one field
+| extend User = iff(isnotempty(DisplayName), DisplayName, iff(isnotempty(Upn), Upn, iff(isnotempty(UserPrincipalName), UserPrincipalName, 'See Entities')))
+| project AlertName, AlertSeverity, User, Entities

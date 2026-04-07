@@ -1,0 +1,7 @@
+let KnownUserAgents = AADSignInEventsBeta
+  | where Timestamp > ago(30d) and Timestamp < ago(3d)
+  | distinct UserAgent;
+AADSignInEventsBeta
+| where Timestamp > ago(3d)
+| where UserAgent !in (KnownUserAgents)
+| project Timestamp, UserAgent, ErrorCode, AccountObjectId,AccountDisplayName, IPAddress

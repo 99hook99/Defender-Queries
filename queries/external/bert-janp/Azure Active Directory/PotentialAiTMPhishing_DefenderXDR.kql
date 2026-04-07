@@ -1,0 +1,7 @@
+AADSignInEventsBeta
+| where Application == "OfficeHome"
+| where AccountUpn has "@"
+| where isempty(AadDeviceId)
+| summarize RiskLevels = make_set(RiskLevelDuringSignIn), ResultTypes = make_set(ErrorCode), IPs = make_set(IPAddress), Useragents = make_set(UserAgent) by CorrelationId, AccountUpn, IPAddress
+// Optional to only filter on events with a RiskLevel during the sign-in
+//| where RiskLevels has_any (10, 50, 100)

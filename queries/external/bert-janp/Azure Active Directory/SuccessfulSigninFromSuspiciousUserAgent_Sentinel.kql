@@ -1,0 +1,19 @@
+let SuspiciousUserAgents = externaldata(http_user_agent:string,metadata_description:string,metadata_tool:string,metadata_category:string,metadata_link:string,metadata_priority:string,metadata_fp_risk:string,metadata_severity:string,metadata_usage:string,metadata_flow_from_external:string,metadata_flow_from_internal:string,metadata_flow_to_internal:string,metadata_flow_to_external:string,metadata_for_successful_external_login_events:string,metadata_comment:string)["https://raw.githubusercontent.com/mthcht/awesome-lists/refs/heads/main/Lists/suspicious_http_user_agents_list.csv"] with (format="csv", ignoreFirstRecord=true);
+let UserAgentsOfInterest = SuspiciousUserAgents
+| where metadata_category in~ ("Credential Access",
+    "Phishing",
+    "phishing",
+    "Reconnaissance",
+    "Exploit",
+    "Exploitation",
+    "Exploitation tool",
+    "Defense Evasion",
+    "POST Exploitation",
+    "Bots & Vulnerability Scanner",
+    "uncommun user agent")
+| extend StandardizedUserAgent = replace_string(http_user_agent, "*", "")
+| distinct StandardizedUserAgent;
+SigninLogs
+| where ResultType == 0
+| where UserAgent has_any (UserAgentsOfInterest)
+| project-reorder TimeGenerated, UserPrincipalName, UserAgent, ResultType, ResultDescription, SessionId

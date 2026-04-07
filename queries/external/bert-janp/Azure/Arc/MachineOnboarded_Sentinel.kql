@@ -1,0 +1,5 @@
+AzureActivity
+| where OperationNameValue =~ "MICROSOFT.HYBRIDCOMPUTE/MACHINES/WRITE"
+| where ActivityStatusValue =~ "Success"
+| extend HostName = tostring(parse_json(Properties).resource)
+| project-reorder TimeGenerated, Caller, HostName, ResourceGroup

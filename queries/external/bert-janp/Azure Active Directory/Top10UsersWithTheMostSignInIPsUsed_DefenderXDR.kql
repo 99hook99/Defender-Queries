@@ -1,0 +1,5 @@
+AADSignInEventsBeta
+| summarize IPsUsed = make_set(IPAddress), locations = make_set(Country) by AccountObjectId
+| extend CountIP = array_length(IPsUsed)
+| project-reorder CountIP
+| top 10 by CountIP

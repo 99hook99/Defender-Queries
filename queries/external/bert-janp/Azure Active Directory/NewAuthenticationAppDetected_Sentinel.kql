@@ -1,0 +1,10 @@
+let KnownApps = SigninLogs
+// Adjust the timerange depending on the retention period
+| where TimeGenerated between (ago(90d) .. ago(2d))
+| distinct AppDisplayName;
+SigninLogs
+| where TimeGenerated > ago(2d)
+| where not(AppDisplayName in~ (KnownApps))
+// If the AppID is empty then it is a third party App.
+| extend IsExternalApp = iff(isempty(AppId), "True", "False")
+| project-reorder TimeGenerated, UserPrincipalName, ResultType, IsExternalApp, AppDisplayName, Identity, IPAddress, ClientAppUsed

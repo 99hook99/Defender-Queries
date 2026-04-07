@@ -1,0 +1,4 @@
+AuditLogs
+| where OperationName == "Delete conditional access policy"
+| extend DeletedPolicy = TargetResources.[0].displayName, Actor = InitiatedBy.user.userPrincipalName
+| project TimeGenerated, Actor, DeletedPolicy, TargetResources

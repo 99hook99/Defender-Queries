@@ -1,0 +1,10 @@
+SigninLogs
+// Filter only successful sign-ins
+| where ResultType == 0
+| where AuthenticationProtocol == "deviceCode"
+// Filter on unmanaged devices
+| where isempty(DeviceDetail.deviceId)
+| extend operatingSystem = tostring(DeviceDetail.operatingSystem)
+// Optionally filter only on sign-ins with a risklevel associated with the sign-in
+//| where RiskLevelDuringSignIn != "none"
+| project-reorder TimeGenerated, UserPrincipalName, AuthenticationProtocol, ResultType, RiskLevelDuringSignIn, AppDisplayName, AppId, Location, IPAddress

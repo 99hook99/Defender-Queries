@@ -1,0 +1,5 @@
+AuditLogs
+| where OperationName == "Add member to role completed (PIM activation)"
+| summarize TotalActivations = count() by Identity
+| sort by TotalActivations
+| render columnchart

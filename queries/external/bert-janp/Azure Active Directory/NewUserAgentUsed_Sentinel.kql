@@ -1,0 +1,7 @@
+let KnownUserAgents = SigninLogs
+  | where TimeGenerated > ago(90d) and TimeGenerated < ago(3d)
+  | distinct UserAgent;
+SigninLogs
+| where TimeGenerated > ago(3d)
+| where UserAgent !in (KnownUserAgents)
+| project TimeGenerated, UserAgent, ResultType, Identity, UserPrincipalName, IPAddress

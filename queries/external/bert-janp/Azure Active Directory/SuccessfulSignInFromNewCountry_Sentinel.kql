@@ -1,0 +1,12 @@
+let KnownCountries = SigninLogs
+  | where TimeGenerated > ago(90d) and TimeGenerated < ago(3d)
+    //Only filter on successful logins
+    | where ResultType == 0
+    | where isnotempty(Location)
+    | distinct Location;
+SigninLogs
+| where TimeGenerated > ago(3d)
+| where ResultType == 0
+| where isnotempty(Location)
+| where Location !in (KnownCountries)
+| project TimeGenerated, Location, UserAgent, ResultType, Identity, UserPrincipalName, IPAddress

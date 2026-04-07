@@ -1,0 +1,6 @@
+let Threshold = 20;
+let BinSize = 1d;
+CloudAuditEvents
+| where ActionType == "CloudAuditEventDelete"
+| summarize TotalActions = count(), arg_max(Timestamp, *) by bin(Timestamp, BinSize), Account, DataSource
+| where TotalActions > Threshold

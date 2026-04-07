@@ -1,0 +1,6 @@
+let ArcMachines = arg("").Resources
+| where type == "microsoft.hybridcompute/machines"
+| distinct id;
+Heartbeat
+| summarize arg_max(TimeGenerated, TimeGenerated, Computer, Resource, ResourceId) by Computer
+| where ResourceId in (ArcMachines)

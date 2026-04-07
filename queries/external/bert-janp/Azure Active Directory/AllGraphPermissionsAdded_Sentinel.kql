@@ -1,0 +1,12 @@
+AuditLogs
+| where Category == "ApplicationManagement"
+| where ActivityDisplayName in ("Add delegated permission grant", "Add app role assignment to service principal")
+| mv-expand TargetResources
+| where TargetResources.displayName == "Microsoft Graph"
+| mv-expand TargetResources.modifiedProperties
+| extend InitiatedByUserPrincipalName = InitiatedBy.user.userPrincipalName
+| extend AddedPermission = replace_string(tostring(TargetResources_modifiedProperties.newValue),'"','')
+| extend IP = todynamic(InitiatedBy).user.ipAddress
+| extend ServicePrincipalAppId = replace_string(tostring(todynamic(TargetResources).modifiedProperties[5].newValue),'"','')
+| where AddedPermission has ".All"
+| project-reorder TimeGenerated, InitiatedByUserPrincipalName, ActivityDisplayName, AddedPermission, IP, ServicePrincipalAppId

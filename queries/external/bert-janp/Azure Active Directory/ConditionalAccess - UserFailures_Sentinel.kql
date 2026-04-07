@@ -1,0 +1,5 @@
+SigninLogs
+| where ResultType != 0
+| where ResultDescription has "Conditional Access"
+| summarize Total = count(), ResultTypes = make_set(ResultType), ResultDescriptions = make_set(ResultDescription) by UserPrincipalName
+| sort by Total

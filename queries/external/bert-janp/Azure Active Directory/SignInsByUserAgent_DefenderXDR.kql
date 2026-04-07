@@ -1,0 +1,3 @@
+AADSignInEventsBeta
+| summarize count() by UserAgent
+| sort by count_

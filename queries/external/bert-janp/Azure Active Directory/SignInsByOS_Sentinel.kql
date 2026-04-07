@@ -1,0 +1,8 @@
+SigninLogs
+| where isnotempty(UserAgent)
+// Filter for successful sign ins only
+| where ResultType == 0
+| extend ParsedAgent = parse_json(parse_user_agent(UserAgent, "os"))
+| extend OperatingSystem = strcat(tostring(ParsedAgent.OperatingSystem.Family), " ", tostring(ParsedAgent.OperatingSystem.MajorVersion))
+| summarize Total = count() by OperatingSystem
+| sort by Total

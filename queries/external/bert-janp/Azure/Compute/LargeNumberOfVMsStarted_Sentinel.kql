@@ -1,0 +1,8 @@
+let Threshold = 25;
+let TimeFrame = 1h;
+AzureActivity
+| where OperationNameValue =~ "MICROSOFT.COMPUTE/VIRTUALMACHINES/START/ACTION"
+| where ActivityStatusValue == "Success"
+| extend ResourceName = tostring(parse_json(Properties).resource)
+| summarize Total = dcount(ResourceName), ResourceNames = make_set(ResourceName) by bin(TimeGenerated, TimeFrame), SubscriptionId, ResourceId
+| where Total >= Threshold

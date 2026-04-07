@@ -61,24 +61,34 @@ def _get(url: str) -> dict:
     return resp.json()
 
 
-def get_repo_tree(repo: str) -> list[dict]:
-    """Return flat recursive file tree for a GitHub repo (tries main → master)."""
-    for branch in ("main", "master"):
-        try:
-            data = _get(f"{GITHUB_API}/repos/{repo}/git/trees/{branch}?recursive=1")
-            return data.get("tree", [])
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                continue
-            raise
-    raise RuntimeError(f"Could not fetch tree for {repo} (tried main/master)")
+def get_repo_default_branch(repo: str) -> str:
+    """Return the default branch name for a repo."""
+    data = _get(f"{GITHUB_API}/repos/{repo}")
+    return data.get("default_branch", "main")
+
+
+_repo_branch_cache: dict[str, str] = {}
+
+
+def get_repo_tree(repo: str) -> tuple[list[dict], str]:
+    """Return (flat file tree, branch) for a GitHub repo."""
+    if repo not in _repo_branch_cache:
+        _repo_branch_cache[repo] = get_repo_default_branch(repo)
+    branch = _repo_branch_cache[repo]
+    data = _get(f"{GITHUB_API}/repos/{repo}/git/trees/{branch}?recursive=1")
+    return data.get("tree", []), branch
 
 
 def download_raw(repo: str, file_path: str) -> str:
-    """Download a single file from GitHub and return its text content."""
+    """Download file content via raw.githubusercontent.com (no API rate limit for content)."""
+    if repo not in _repo_branch_cache:
+        _repo_branch_cache[repo] = get_repo_default_branch(repo)
+    branch = _repo_branch_cache[repo]
     encoded = urllib.parse.quote(file_path)
-    data = _get(f"{GITHUB_API}/repos/{repo}/contents/{encoded}")
-    return base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+    url = f"https://raw.githubusercontent.com/{repo}/{branch}/{encoded}"
+    resp = requests.get(url, timeout=30)
+    resp.raise_for_status()
+    return resp.text
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +180,7 @@ def sync_source(source: dict, manifest: dict, dry_run: bool) -> list[dict]:
 
     print(f"  [{source['name']}] fetching tree…")
     try:
-        tree = get_repo_tree(repo)
+        tree, _ = get_repo_tree(repo)
     except Exception as e:
         print(f"  ERROR: {e}", file=sys.stderr)
         return []

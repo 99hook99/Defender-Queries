@@ -1,0 +1,7 @@
+let IPs = ThreatIntelligenceIndicator
+    | where isnotempty( NetworkSourceIP)
+    | where ConfidenceScore > 70
+    | distinct NetworkSourceIP;
+AADSignInEventsBeta
+| where IPAddress in (IPs)
+| project TimeGenerated, AccountUpn, IPAddress, Country

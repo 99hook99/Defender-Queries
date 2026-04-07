@@ -1,0 +1,4 @@
+SigninLogs
+| where ResultDescription has "Conditional Access"
+| summarize Total = count() by ResultType, ResultDescription
+| render barchart with(title="Conditional Access Failures")
