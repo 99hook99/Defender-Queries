@@ -1,0 +1,46 @@
+# KQL Collection Sources
+# ----------------------
+# Add new sources here — no code changes needed.
+#
+# Fields:
+#   name        Display name
+#   repo        GitHub owner/repo
+#   slug        Local folder name under queries/external/
+#   platform    List of supported platforms (MDE, Sentinel, XDR, ...)
+#   file_type   kql (default) | markdown (KQL extracted from ```KQL blocks in .md files)
+#   description Short description shown in README
+#
+# Groups are free-form labels used for organisation in README (community, microsoft, vendor, ...).
+
+sources:
+
+  community:
+    - name: "Bert-JanP Hunting Queries"
+      repo: "Bert-JanP/Hunting-Queries-Detection-Rules"
+      slug: "bert-janp"
+      platform: [MDE, Sentinel, DefenderXDR]
+      file_type: markdown
+      description: "Large collection of hunting queries and detection rules (MD format)"
+
+    - name: "KQL Cafe – KustoCon"
+      repo: "KQLCafe/kustocon"
+      slug: "kqlcafe"
+      platform: [Sentinel, MDE]
+      file_type: kql
+      description: "KQL Cafe conference queries and demos"
+
+  # microsoft:
+  #   - name: "Azure Sentinel Detections"
+  #     repo: "Azure/Azure-Sentinel"
+  #     slug: "azure-sentinel"
+  #     platform: [Sentinel]
+  #     file_type: kql
+  #     description: "Official Microsoft Sentinel detection rules"
+
+  # vendor:
+  #   - name: "..."
+  #     repo: "..."
+  #     slug: "..."
+  #     platform: []
+  #     file_type: kql
+  #     description: ""

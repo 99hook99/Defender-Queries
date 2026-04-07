@@ -1,0 +1,14 @@
+// Title: <naziv poizvedbe>
+// Description: <kaj išče / zakaj>
+// Platform: MDE | Sentinel | XDR
+// MITRE: T1234
+// Author: <tvoje ime>
+// Created: YYYY-MM-DD
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Example: zamenjaj s svojo poizvedbo
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName =~ "example.exe"
+| project Timestamp, DeviceName, InitiatingProcessFileName, FileName, ProcessCommandLine

@@ -1,0 +1,590 @@
+{
+  "files": {
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/ADRoleAdditions.md": {
+      "sha": "41d398def7caa2c142ba1c9bfdf586b1af3036bd",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/ADRoleAdditions.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:31.531843+00:00",
+      "updated_at": "2026-04-07T09:50:31.531843+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/AllGraphPermissionsAdded.md": {
+      "sha": "ddd36654deab10195ad8d4c3b56302a996e91565",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/AllGraphPermissionsAdded.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:31.787912+00:00",
+      "updated_at": "2026-04-07T09:50:31.787912+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/AzureADDownloadAllUsers.md": {
+      "sha": "4476e1eed009cb37d49f5083fdf41cf34a90dac7",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/AzureADDownloadAllUsers.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:32.036405+00:00",
+      "updated_at": "2026-04-07T09:50:32.036405+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/CloudDiscoveryByUserAtRisk.md": {
+      "sha": "54186eee119bfa2afc8df741e40cb2f6cac16a25",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/CloudDiscoveryByUserAtRisk.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:32.276087+00:00",
+      "updated_at": "2026-04-07T09:50:32.276087+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/CloudPersistenceActivityByUserAtRisk.md": {
+      "sha": "8acb635496f7ec6de8954c653d6b22bd450b787b",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/CloudPersistenceActivityByUserAtRisk.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:32.574213+00:00",
+      "updated_at": "2026-04-07T09:50:32.574213+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/ConditionalAccess - AddPolicy.md": {
+      "sha": "f3823631e6b97bc7333c59cf3b34b0ccb250812c",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/ConditionalAccess - AddPolicy.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:32.813181+00:00",
+      "updated_at": "2026-04-07T09:50:32.813181+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/ConditionalAccess - ApplicationFailures.md": {
+      "sha": "6b4bf7670057de8f69cd2c5276bbe8193f603c0c",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/ConditionalAccess - ApplicationFailures.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:33.079744+00:00",
+      "updated_at": "2026-04-07T09:50:33.079744+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/ConditionalAccess - ChangePolicy.md": {
+      "sha": "e9daed229616ab840202c56d4d9cfef694dffa11",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/ConditionalAccess - ChangePolicy.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:33.359673+00:00",
+      "updated_at": "2026-04-07T09:50:33.359673+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/ConditionalAccess - DeletePolicy.md": {
+      "sha": "08ede47dfb31abecc9604fc32bd41a246789b6c5",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/ConditionalAccess - DeletePolicy.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:33.622965+00:00",
+      "updated_at": "2026-04-07T09:50:33.622965+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/ConditionalAccess - UserFailures.md": {
+      "sha": "a7dfab00d11f195ded6b22dc79425e8d82658c00",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/ConditionalAccess - UserFailures.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:33.911957+00:00",
+      "updated_at": "2026-04-07T09:50:33.911957+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/GraphMailPermissions.md": {
+      "sha": "52e4763153aaa3652d785baf68890542e49d2cfc",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/GraphMailPermissions.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:34.165971+00:00",
+      "updated_at": "2026-04-07T09:50:34.165971+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/GroupMembershipReport.md": {
+      "sha": "69f14012c5e34b65133530ed8a43d88de690318d",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/GroupMembershipReport.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:34.445565+00:00",
+      "updated_at": "2026-04-07T09:50:34.445565+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/GuestUsersWithADRoles.md": {
+      "sha": "d2042fa6dd56676860fabf3397c9bebd836d0905",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/GuestUsersWithADRoles.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:34.691617+00:00",
+      "updated_at": "2026-04-07T09:50:34.691617+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/MultipleAccountsLocked.md": {
+      "sha": "51258bc252f51f00ed1165972e54872d182c9f62",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/MultipleAccountsLocked.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:35.244587+00:00",
+      "updated_at": "2026-04-07T09:50:35.244587+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/NewAuthenticationAppDetected.md": {
+      "sha": "730b14e3ce1a4139e771c036735b10fea4422d6b",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/NewAuthenticationAppDetected.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:35.505692+00:00",
+      "updated_at": "2026-04-07T09:50:35.505692+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/NewUserAgentUsed.md": {
+      "sha": "5149b08a6bec644d69c3874baf8167a1db7fb8c6",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/NewUserAgentUsed.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:35.737973+00:00",
+      "updated_at": "2026-04-07T09:50:35.737973+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/PotentialAiTMPhishing.md": {
+      "sha": "edcd576faa7d85cb95ac5625fa3a6083db089cd3",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/PotentialAiTMPhishing.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:35.979364+00:00",
+      "updated_at": "2026-04-07T09:50:35.979364+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/RoleReport.md": {
+      "sha": "16c389b9026bacc918f1f218204d0184e13d991e",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/RoleReport.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:36.262669+00:00",
+      "updated_at": "2026-04-07T09:50:36.262669+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/SecurityAlertTriggeredByRiskyUser.md": {
+      "sha": "3dcb1bf528ac65eba602729e456941e9792e04af",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/SecurityAlertTriggeredByRiskyUser.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:36.540590+00:00",
+      "updated_at": "2026-04-07T09:50:36.540590+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/SignInFromSuspiciousIP.md": {
+      "sha": "dc77da54c85d95fdc0bdefad1ac989f4d77066b1",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/SignInFromSuspiciousIP.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:36.785877+00:00",
+      "updated_at": "2026-04-07T09:50:36.785877+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/SignInsByBrowser.md": {
+      "sha": "94311f7fb2c30a84c599f89ed67d965d577ae964",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/SignInsByBrowser.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:37.041629+00:00",
+      "updated_at": "2026-04-07T09:50:37.041629+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/SignInsByOS.md": {
+      "sha": "315fadf63529c76c97694aee3dcd0b7318ed1f9e",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/SignInsByOS.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:37.271862+00:00",
+      "updated_at": "2026-04-07T09:50:37.271862+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/SignInsByUserAgent.md": {
+      "sha": "ae727bf0c1b157f5f8f3103b7778b646c2a59ab3",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/SignInsByUserAgent.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:37.505685+00:00",
+      "updated_at": "2026-04-07T09:50:37.505685+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/SuccessfulDeviceCodeAuthenticationUnmanagedDevice.md": {
+      "sha": "cb6fc66b4aa1ab1df1a866efccd329d1ee8400a9",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/SuccessfulDeviceCodeAuthenticationUnmanagedDevice.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:37.758580+00:00",
+      "updated_at": "2026-04-07T09:50:37.758580+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/SuccessfulSignInFromNewCountry.md": {
+      "sha": "0d2d176ec752dcd2dbbc12736c5c94ada953a426",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/SuccessfulSignInFromNewCountry.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:38.006803+00:00",
+      "updated_at": "2026-04-07T09:50:38.006803+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/SuccessfulSigninFromSuspiciousUserAgent.md": {
+      "sha": "34e8b711a12568dd6644002150a2e8958381750d",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/SuccessfulSigninFromSuspiciousUserAgent.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:38.351116+00:00",
+      "updated_at": "2026-04-07T09:50:38.351116+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/Top10UsersWithTheMostSignInIPsUsed.md": {
+      "sha": "e6820b1735b4f0de9b968b96228265db8fd85660",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/Top10UsersWithTheMostSignInIPsUsed.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-04-07T09:50:38.684414+00:00",
+      "updated_at": "2026-04-07T09:50:38.684414+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/TopNAccountsLongestPeriodWithoutPasswordReset.md": {
+      "sha": "375ec57f03305f2238a84c71ef1718fd1a52908c",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/TopNAccountsLongestPeriodWithoutPasswordReset.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:38.936723+00:00",
+      "updated_at": "2026-04-07T09:50:38.936723+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/TotalAllGraphPermissionsAdded.md": {
+      "sha": "d0bb3ea458f14eb5f91462f8676cc7708c758b99",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/TotalAllGraphPermissionsAdded.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:39.209473+00:00",
+      "updated_at": "2026-04-07T09:50:39.209473+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/Visualization - AccountsLongestPeriodWithoutPasswordReset.md": {
+      "sha": "aaf86954f2c4ce2d7daa99c6b79ee578669cd0c1",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/Visualization - AccountsLongestPeriodWithoutPasswordReset.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:39.468200+00:00",
+      "updated_at": "2026-04-07T09:50:39.468200+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/Visualization - AuthenticationMethodsUsed.md": {
+      "sha": "07a3f80ec5a0bbc662b58ff5fed835f747c94897",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/Visualization - AuthenticationMethodsUsed.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:39.719785+00:00",
+      "updated_at": "2026-04-07T09:50:39.719785+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/Visualization - ConditionalAccess - SignInFailures.md": {
+      "sha": "97999403dca289ed1151398658157a23094675d8",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/Visualization - ConditionalAccess - SignInFailures.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:40.029576+00:00",
+      "updated_at": "2026-04-07T09:50:40.029576+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/Visualization - PimActivation.md": {
+      "sha": "d88c9d04e6420b7284dfe62c681c0bfecf59ef18",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/Visualization - PimActivation.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:40.275773+00:00",
+      "updated_at": "2026-04-07T09:50:40.275773+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/Visualization - UserRiskEvents.md": {
+      "sha": "2ca190c0b5d4befb79c250247f89c2cad7af2c18",
+      "local_path": "queries/external/bert-janp/Azure Active Directory/Visualization - UserRiskEvents.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:40.534816+00:00",
+      "updated_at": "2026-04-07T09:50:40.534816+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure/Arc/LastCheckInArcMachines.md": {
+      "sha": "95106ef44170ddb38a2b40a5adbb6e6d8672c049",
+      "local_path": "queries/external/bert-janp/Azure/Arc/LastCheckInArcMachines.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:41.912349+00:00",
+      "updated_at": "2026-04-07T09:50:41.912349+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure/Arc/MachineOnboarded.md": {
+      "sha": "873088ca0a05c91b89b62d8c37f161fcbd46dd70",
+      "local_path": "queries/external/bert-janp/Azure/Arc/MachineOnboarded.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:42.180652+00:00",
+      "updated_at": "2026-04-07T09:50:42.180652+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure/Arc/OnboardedMachinesByResourceGroup.md": {
+      "sha": "a20ed209717afff7d832d26c9f215965e611b48d",
+      "local_path": "queries/external/bert-janp/Azure/Arc/OnboardedMachinesByResourceGroup.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:42.443414+00:00",
+      "updated_at": "2026-04-07T09:50:42.443414+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure/Compute/LargeNumberOfVMsStarted.md": {
+      "sha": "b8ab3af8f881717c1281a0226e9cba7ddb03adce",
+      "local_path": "queries/external/bert-janp/Azure/Compute/LargeNumberOfVMsStarted.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:42.684924+00:00",
+      "updated_at": "2026-04-07T09:50:42.684924+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Cloud Audit Events/CloudResourceDeletion.md": {
+      "sha": "1729001a303dc6da000985e08b1f7a067448ff4c",
+      "local_path": "queries/external/bert-janp/Cloud Audit Events/CloudResourceDeletion.md",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-04-07T09:50:42.961257+00:00",
+      "updated_at": "2026-04-07T09:50:42.961257+00:00"
+    }
+  },
+  "last_sync": "2026-04-07T09:51:25.683723+00:00"
+}

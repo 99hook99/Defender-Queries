@@ -1,0 +1,17 @@
+# Metadata sidecar za template.kql
+# Poimenuj enako kot .kql datoteko
+
+title: "Template Query"
+description: "Kratek opis kaj poizvedba išče"
+platform:
+  - MDE           # Microsoft Defender for Endpoint
+  # - Sentinel    # Microsoft Sentinel
+  # - XDR         # Microsoft Defender XDR
+mitre:
+  - T1234         # https://attack.mitre.org/techniques/T1234/
+severity: Medium  # Low | Medium | High | Critical
+tags:
+  - example
+author: ""
+created: "2026-04-07"
+source_url: ""    # če je prevzeto od drugje
