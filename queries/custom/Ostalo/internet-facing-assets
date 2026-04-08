@@ -1,0 +1,13 @@
+DeviceInfo
+| where Timestamp > ago(7d)
+| where IsInternetFacing
+| extend InternetFacingInfo = AdditionalFields
+| extend PublicIP = extractjson("$.InternetFacingPublicScannedIp", InternetFacingInfo, typeof(string)),
+         PublicPort = extractjson("$.InternetFacingPublicScannedPort", InternetFacingInfo, typeof(int)),
+         LocalIP = extractjson("$.InternetFacingLocalIp", InternetFacingInfo, typeof(string)),
+         LocalPort = extractjson("$.InternetFacingLocalPort", InternetFacingInfo, typeof(int)),
+         Reason = extractjson("$.InternetFacingReason", InternetFacingInfo, typeof(string)),
+         LastSeen = extractjson("$.InternetFacingLastSeen", InternetFacingInfo, typeof(datetime))
+| summarize arg_max(Timestamp, *) by DeviceId
+| project Timestamp, DeviceName, DeviceId, PublicIP, PublicPort, LocalIP, LocalPort, Reason, LastSeen
+| order by DeviceName asc
