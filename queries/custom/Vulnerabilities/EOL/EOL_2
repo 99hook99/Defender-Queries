@@ -1,0 +1,4 @@
+DeviceTvmSoftwareInventory
+| where isnotempty(EndOfSupportStatus)
+| summarize DeviceCount = dcount(DeviceName) by SoftwareVendor, SoftwareName, SoftwareVersion, EndOfSupportStatus
+| order by DeviceCount desc
