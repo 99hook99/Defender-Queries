@@ -1,0 +1,52 @@
+let LatestDeviceInfo =
+    DeviceInfo
+    | where Timestamp > ago(14d)
+    | where isnotempty(OSPlatform)
+    | summarize arg_max(Timestamp, *) by DeviceId
+    | where OnboardingStatus == "Onboarded"
+    | where IsExcluded != true;
+
+let Inventory =
+    DeviceTvmSoftwareInventory
+    | distinct DeviceId, SoftwareVendor, SoftwareName, SoftwareVersion, EndOfSupportStatus;
+
+DeviceTvmSoftwareVulnerabilities
+| join kind=leftouter (
+    DeviceTvmSoftwareVulnerabilitiesKB
+    | project
+        CveId,
+        CvssScore = todouble(CvssScore),
+        IsExploitAvailable,
+        PublishedDate
+) on CveId
+| join kind=leftouter Inventory on DeviceId, SoftwareVendor, SoftwareName, SoftwareVersion
+| join kind=inner LatestDeviceInfo on DeviceId
+| extend
+    HasZeroDay = CveTags has "ZeroDay",
+    NoSecurityUpdate = CveTags has "NoSecurityUpdate"
+| where NoSecurityUpdate == false
+| summarize
+    ExposedDevices = dcount(DeviceId),
+    InternetFacingDevices = dcountif(DeviceId, IsInternetFacing == true),
+    HighValueDevices = dcountif(DeviceId, AssetValue == "High"),
+    HighExposureDevices = dcountif(DeviceId, ExposureLevel == "High"),
+    Servers = dcountif(DeviceId, DeviceType == "Server"),
+    CriticalCVEs = dcountif(CveId, VulnerabilitySeverityLevel == "Critical"),
+    ExploitableCVEs = dcountif(CveId, IsExploitAvailable == true),
+    ZeroDays = dcountif(CveId, HasZeroDay),
+    EOSDevices = dcountif(DeviceId, EndOfSupportStatus !in ("", "Supported", "N/A")),
+    MaxCvss = max(CvssScore),
+    CVEs = make_set(CveId, 20)
+  by SoftwareVendor, SoftwareName, RecommendedSecurityUpdateId, RecommendedSecurityUpdate
+| extend CampaignScore =
+    (ExposedDevices * 2) +
+    (InternetFacingDevices * 4) +
+    (HighValueDevices * 3) +
+    (HighExposureDevices * 3) +
+    (Servers * 2) +
+    (CriticalCVEs * 6) +
+    (ExploitableCVEs * 7) +
+    (ZeroDays * 10) +
+    (EOSDevices * 3) +
+    iff(MaxCvss >= 9.0, 4, 0)
+| order by CampaignScore desc, ExposedDevices desc, MaxCvss desc
