@@ -1,0 +1,18 @@
+DeviceInfo
+| summarize arg_max(TimeGenerated, *) by DeviceId
+| project DeviceId, DeviceName, LastSeen=TimeGenerated,
+          OSPlatform, OSDistribution, OSVersion, OSBuild,
+          SensorHealthState
+| join kind=inner (
+    DeviceTvmSoftwareInventory
+    | where isnotempty(EndOfSupportStatus)
+    | where tolower(SoftwareName) hasprefix "windows"
+    // "zadnji" zapis vzamemo po najkasnejšem EndOfSupportDate
+    | summarize arg_max(EndOfSupportDate, EndOfSupportStatus, SoftwareName, SoftwareVersion, OSPlatform, OSVersion, OSArchitecture) by DeviceId
+) on DeviceId
+| project DeviceName, DeviceId,
+          OSPlatform, OSDistribution, OSVersion, OSBuild, OSArchitecture,
+          SoftwareName, SoftwareVersion,
+          EndOfSupportStatus, EndOfSupportDate,
+          SensorHealthState, LastSeen
+| order by EndOfSupportDate asc, LastSeen desc
