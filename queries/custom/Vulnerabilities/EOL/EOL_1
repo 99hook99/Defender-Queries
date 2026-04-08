@@ -1,0 +1,5 @@
+DeviceTvmSoftwareInventory
+| where isnotempty(EndOfSupportStatus)
+| project DeviceName, SoftwareVendor, SoftwareName, SoftwareVersion, EndOfSupportStatus, EndOfSupportDate
+| order by EndOfSupportDate asc
+
