@@ -1,0 +1,41 @@
+// 1) INTERNET-FACING NAPRAVE (zadnjih 7 dni)
+let InternetFacingDevices =
+    DeviceInfo
+    | where Timestamp > ago(7d)
+    | where IsInternetFacing
+    | extend info = AdditionalFields
+    | extend
+        PublicIP   = extractjson("$.InternetFacingPublicScannedIp",   info, typeof(string)),
+        PublicPort = extractjson("$.InternetFacingPublicScannedPort", info, typeof(int)),
+        LastSeen   = extractjson("$.InternetFacingLastSeen",          info, typeof(datetime))
+    | summarize arg_max(Timestamp, *) by DeviceId
+    | project DeviceId, DeviceName, PublicIP, PublicPort, LastSeen
+;
+
+// 2) VISOKO-KRITIČNE CVE-JI Z JAVNIM EXPLOITOM + PODATKI O PRODUKTU
+let HighVulns =
+    DeviceTvmSoftwareVulnerabilities
+    | join kind = inner DeviceTvmSoftwareVulnerabilitiesKB on CveId
+    | where VulnerabilitySeverityLevel == "High"
+          and IsExploitAvailable == 1
+    | project
+        DeviceId,
+        CveId,
+        Severity   = VulnerabilitySeverityLevel,
+        PublicExploit = "YES",                 // ker je IsExploitAvailable == 1
+        Product    = SoftwareName              // ime programske opreme / produkta
+;
+
+// 3) KONČNI IZPIS — ena vrstica na (DeviceName, CVE, Produkt)
+InternetFacingDevices
+| join kind = inner HighVulns on DeviceId
+| project
+    DeviceName,
+    Product,
+    CveId,
+    Severity,
+    PublicExploit,
+    PublicIP,
+    PublicPort,
+    LastSeen
+| order by DeviceName asc, Product asc, CveId asc
