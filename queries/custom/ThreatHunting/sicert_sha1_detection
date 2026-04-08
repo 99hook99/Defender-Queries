@@ -1,0 +1,15 @@
+let SHA256List = externaldata(SHA256: string)[@"https://www.cert.si/misp/sha256/list.txt"] 
+with (format="txt");
+DeviceFileEvents
+| where SHA256 has_any (SHA256List)
+| project
+     Timestamp,
+     DeviceId,
+     DeviceName,
+     InitiatingProcessAccountName,
+     InitiatingProcessAccountDomain,
+     FileName,
+     FolderPath,
+     InitiatingProcessCommandLine,
+     SHA1,
+     ReportId
