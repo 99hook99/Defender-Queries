@@ -1,0 +1,397 @@
+// ================================================================
+// PYTHON PROGRAM INVENTORY + RISK SCORING
+// HOST-LEVEL VIEW (1 row = 1 host)
+// ================================================================
+
+let PythonInstalled =
+    DeviceTvmSoftwareInventory
+    | extend SWName = trim(" ", tolower(SoftwareName))
+    | where SWName matches regex @"^python(\s+\d+(\.\d+){0,2}(\s*\([^)]*\))?)?$"
+        or SWName matches regex @"^python\d+(\.\d+){0,2}$"
+    | extend VersionText = iff(
+        isnotempty(SoftwareVersion),
+        SoftwareVersion,
+        extract(@"(\d+(\.\d+){0,2})", 1, SoftwareName)
+    )
+    | extend PyMajor = toint(extract(@"^(\d+)", 1, VersionText)),
+             PyMinor = toint(extract(@"^\d+\.(\d+)", 1, VersionText))
+    | extend PythonLifecycleStatus = case(
+        EndOfSupportStatus startswith "Upcoming EOS", "Upcoming EOL",
+        EndOfSupportStatus startswith "EOS", "EOL",
+        EndOfSupportStatus == "None", "Supported",
+        isempty(EndOfSupportStatus), "Unknown",
+        EndOfSupportStatus
+    )
+    | extend PythonVersionDefinition = case(
+        isnull(PyMajor), "Unknown",
+        PyMajor < 3, "Python 2 / legacy",
+        PyMajor == 3 and coalesce(PyMinor, -1) <= 10, "Python <= 3.10",
+        "Python >= 3.11"
+    )
+    | extend PythonLifecycleLabel = strcat(
+        VersionText, " => ", PythonLifecycleStatus,
+        iff(
+            isnotnull(EndOfSupportDate),
+            strcat(" (", format_datetime(EndOfSupportDate, "yyyy-MM-dd"), ")"),
+            ""
+        )
+    )
+    | extend PythonDefinitionLabel = strcat(VersionText, " => ", PythonVersionDefinition)
+    | extend RowVersionScore = case(
+        isnull(PyMajor),                             0,
+        PyMajor < 3,                                50,  // Python 2
+        PyMajor == 3 and coalesce(PyMinor, 0) <= 7, 50,  // 3.0-3.7
+        PyMajor == 3 and PyMinor == 8,              45,  // EOL
+        PyMajor == 3 and PyMinor == 9,              40,  // EOL
+        PyMajor == 3 and PyMinor == 10,             30,  // Upcoming EOL -> najmanj High
+        PyMajor == 3 and PyMinor == 11,             10,  // security-only
+        0
+    )
+    | summarize
+        InstalledPythonVersionsArr    = make_set(VersionText, 10),
+        InstalledPythonNamesArr       = make_set(SoftwareName, 10),
+        InstalledPythonDefinitionsArr = make_set(PythonDefinitionLabel, 10),
+        InstalledPythonLifecycleArr   = make_set(PythonLifecycleLabel, 10),
+        LegacyPythonVersionsArr       = make_set_if(VersionText, PyMajor < 3 or (PyMajor == 3 and coalesce(PyMinor, 0) <= 10), 10),
+        EolPythonVersionsArr          = make_set_if(VersionText, EndOfSupportStatus startswith "EOS", 10),
+        UpcomingEolVersionsArr        = make_set_if(VersionText, EndOfSupportStatus startswith "Upcoming EOS", 10),
+        VersionScoreInstalled         = max(RowVersionScore),
+        LegacyPythonPresent           = iff(countif(PyMajor < 3 or (PyMajor == 3 and coalesce(PyMinor, 0) <= 10)) > 0, "Yes", "No"),
+        EolPythonPresent              = iff(countif(EndOfSupportStatus startswith "EOS") > 0, "Yes", "No"),
+        UpcomingEolPythonPresent      = iff(countif(EndOfSupportStatus startswith "Upcoming EOS") > 0, "Yes", "No"),
+        arg_max(RowVersionScore, VersionText, PythonLifecycleStatus, PythonVersionDefinition)
+      by DeviceId
+    | project
+        DeviceId,
+        InstalledPythonVersionsArr,
+        InstalledPythonNamesArr,
+        InstalledPythonDefinitionsArr,
+        InstalledPythonLifecycleArr,
+        LegacyPythonVersionsArr,
+        EolPythonVersionsArr,
+        UpcomingEolVersionsArr,
+        VersionScoreInstalled,
+        LegacyPythonPresent,
+        EolPythonPresent,
+        UpcomingEolPythonPresent,
+        RiskiestInstalledVersion          = VersionText,
+        RiskiestInstalledLifecycleStatus  = PythonLifecycleStatus,
+        RiskiestInstalledDefinition       = PythonVersionDefinition;
+
+let PythonVulns =
+    DeviceTvmSoftwareVulnerabilities
+    | where tolower(SoftwareName) contains "python"
+    | summarize
+        CriticalVulnCount = countif(VulnerabilitySeverityLevel == "Critical"),
+        HighVulnCount     = countif(VulnerabilitySeverityLevel == "High"),
+        TotalHighCritical = countif(VulnerabilitySeverityLevel in ("Critical", "High")),
+        CriticalCVEs      = strcat_array(make_set_if(CveId, VulnerabilitySeverityLevel == "Critical", 20), ", "),
+        HighCVEs          = strcat_array(make_set_if(CveId, VulnerabilitySeverityLevel == "High", 20), ", ")
+      by DeviceId;
+
+let LastInteractiveUser =
+    DeviceLogonEvents
+    | where LogonType in ("Interactive", "RemoteInteractive", "CachedInteractive")
+    | summarize arg_max(Timestamp, AccountName, AccountDomain) by DeviceId
+    | project
+        DeviceId,
+        LastInteractiveUser   = AccountName,
+        LastInteractiveDomain = AccountDomain,
+        UserLastSeen          = Timestamp;
+
+let PythonExecutions =
+    DeviceProcessEvents
+    | where Timestamp > ago(30d)
+    | where tolower(ProcessCommandLine) has ".py"
+        or tolower(FileName) in ("python.exe", "pythonw.exe", "py.exe", "python", "python3")
+    | extend ScriptPath = extract(@"(?i)(([a-z]:\\|/)[^""'\s]+\.(pyw?|pyz))", 1, ProcessCommandLine)
+    | where isnotempty(ScriptPath)
+    | summarize arg_max(
+        Timestamp,
+        AccountName,
+        AccountUpn,
+        FileName,
+        ProcessVersionInfoProductVersion,
+        ProcessCommandLine,
+        InitiatingProcessFileName,
+        InitiatingProcessCommandLine,
+        InitiatingProcessParentFileName
+    ) by DeviceId, ScriptPathKey = tolower(ScriptPath)
+    | project
+        DeviceId,
+        ScriptPathKey,
+        LastExecution                       = Timestamp,
+        ExecUsername                        = AccountName,
+        ExecUPN                             = AccountUpn,
+        PythonHost                          = FileName,
+        ExecPythonVersion                   = ProcessVersionInfoProductVersion,
+        ExecProcessCommandLine              = ProcessCommandLine,
+        ExecInitiatingProcessFileName       = InitiatingProcessFileName,
+        ExecInitiatingProcessCommandLine    = InitiatingProcessCommandLine,
+        ExecInitiatingProcessParentFileName = InitiatingProcessParentFileName;
+
+DeviceFileEvents
+| where Timestamp > ago(30d)
+| where FileName endswith ".py"
+| where not(FileName contains "*")
+| where FileName !startswith "_"
+| where FolderPath !startswith "/usr/lib/python"
+    and FolderPath !startswith "/usr/share/"
+    and FolderPath !startswith "/usr/local/lib/"
+| where FolderPath !contains "\\Program Files\\"
+    and FolderPath !contains "\\Program Files (x86)\\"
+    and FolderPath !contains "\\Windows\\"
+| where FolderPath !contains "\\envs\\"
+    and FolderPath !contains "\\conda\\"
+    and FolderPath !contains "\\site-packages\\"
+    and FolderPath !contains "\\dist-packages\\"
+    and FolderPath !contains "\\lib\\python"
+    and FolderPath !contains "\\.venv\\"
+    and FolderPath !contains "\\venv\\"
+    and FolderPath !contains "\\__pycache__\\"
+    and FolderPath !contains "\\pylib\\"
+| where FolderPath !contains "\\node_modules\\"
+    and FolderPath !contains "/node_modules/"
+| where FolderPath !contains "/.vscode-server/data/User/History/"
+    and FolderPath !contains "\\.vscode\\data\\User\\History\\"
+    and FolderPath !contains "\\vscode-server\\"
+    and FolderPath !contains "AppData\\Roaming\\Code\\"
+    and FolderPath !contains "GlobalStorage"
+    and FolderPath !contains "\\.spyder"
+| where FolderPath !contains "\\AppData\\Local\\AzureFunctions"
+    and FolderPath !contains "\\AppData\\Local\\Programs\\"
+    and FolderPath !contains "\\AppData\\Local\\Microsoft\\"
+    and FolderPath !contains "\\AppData\\Local\\JetBrains\\"
+    and FolderPath !contains "\\AppData\\Local\\GitHubDesktop\\"
+    and FolderPath !contains "\\AppData\\Roaming\\npm\\"
+    and FolderPath !contains "\\AppData\\Local\\anaconda"
+    and FolderPath !contains "\\AppData\\Local\\miniconda"
+    and FolderPath !contains "\\AppData\\Local\\Packages\\"
+    and FolderPath !contains "\\AppData\\Local\\Temp\\"
+| where FolderPath startswith "C:\\Users\\"
+    or FolderPath startswith "D:\\Users\\"
+    or FolderPath startswith "D:\\projects\\"
+    or FolderPath startswith "/home/"
+    or FolderPath startswith "/root/"
+| where FileName != "setup.py"
+    and FileName != "conftest.py"
+    and not(FileName endswith "_test.py")
+    and not(FileName startswith "test_")
+| extend FullPath = case(
+    FolderPath startswith "/",
+        strcat(FolderPath, iff(FolderPath endswith "/", "", "/"), FileName),
+        strcat(FolderPath, iff(FolderPath endswith "\\", "", "\\"), FileName)
+)
+| summarize
+    FirstSeen     = min(Timestamp),
+    LastSeen      = max(Timestamp),
+    ActionsArr    = make_set(ActionType, 5),
+    FileSHA1      = any(SHA1),
+    FileSize      = max(FileSize),
+    FileEventUser = any(InitiatingProcessAccountName),
+    FileEventUPN  = any(InitiatingProcessAccountUpn)
+  by DeviceId, DeviceName, FileName, FolderPath, FullPath
+| extend ScriptPathKey = tolower(FullPath)
+| join kind=leftouter PythonExecutions on DeviceId, ScriptPathKey
+| join kind=leftouter PythonInstalled on DeviceId
+| join kind=leftouter LastInteractiveUser on DeviceId
+| join kind=leftouter PythonVulns on DeviceId
+| extend InstalledPythonVersions    = strcat_array(InstalledPythonVersionsArr, ", ")
+| extend InstalledPythonNames       = strcat_array(InstalledPythonNamesArr, ", ")
+| extend InstalledPythonDefinitions = strcat_array(InstalledPythonDefinitionsArr, ", ")
+| extend InstalledPythonLifecycle   = strcat_array(InstalledPythonLifecycleArr, ", ")
+| extend LegacyPythonVersions       = strcat_array(LegacyPythonVersionsArr, ", ")
+| extend EolPythonVersions          = strcat_array(EolPythonVersionsArr, ", ")
+| extend UpcomingEolVersions        = strcat_array(UpcomingEolVersionsArr, ", ")
+| extend Actions                    = strcat_array(ActionsArr, ", ")
+| extend ExecPyMajor = toint(extract(@"^(\d+)", 1, ExecPythonVersion)),
+         ExecPyMinor = toint(extract(@"^\d+\.(\d+)", 1, ExecPythonVersion))
+| extend VersionScoreExec = case(
+    isnull(ExecPyMajor),                              0,
+    ExecPyMajor < 3,                                 50,
+    ExecPyMajor == 3 and coalesce(ExecPyMinor, 0) <= 7, 50,
+    ExecPyMajor == 3 and ExecPyMinor == 8,           45,
+    ExecPyMajor == 3 and ExecPyMinor == 9,           40,
+    ExecPyMajor == 3 and ExecPyMinor == 10,          30,
+    ExecPyMajor == 3 and ExecPyMinor == 11,          10,
+    0
+)
+| extend PathVerRaw = coalesce(
+    extract(@"(?i)(python[-_]?\d\.\d{1,2})", 1, FullPath),
+    extract(@"(?i)(python\d\d{1,2})", 1, FullPath),
+    extract(@"(?i)(cpython[-_]\d\d{1,2})", 1, FullPath)
+)
+| extend PathPyMajor = toint(coalesce(
+    extract(@"(?i)(?:python|cpython)[-_]?(\d)\.\d", 1, PathVerRaw),
+    extract(@"(?i)(?:python|cpython)[-_]?(\d)\d",   1, PathVerRaw)
+))
+| extend PathPyMinor = toint(coalesce(
+    extract(@"(?i)(?:python|cpython)[-_]?\d\.(\d{1,2})", 1, PathVerRaw),
+    extract(@"(?i)(?:python|cpython)[-_]?\d(\d{1,2})",   1, PathVerRaw)
+))
+| extend VersionScorePath = case(
+    isnull(PathPyMajor),                              0,
+    PathPyMajor < 3,                                  50,
+    PathPyMajor == 3 and coalesce(PathPyMinor, 0) <= 7, 50,
+    PathPyMajor == 3 and PathPyMinor == 8,            45,
+    PathPyMajor == 3 and PathPyMinor == 9,            40,
+    PathPyMajor == 3 and PathPyMinor == 10,           30,
+    PathPyMajor == 3 and PathPyMinor == 11,           10,
+    0
+)
+| extend VersionScore = max_of(
+    VersionScoreExec,
+    coalesce(VersionScoreInstalled, 0),
+    VersionScorePath
+)
+| extend EffectivePythonSource = case(
+    VersionScoreExec >= coalesce(VersionScoreInstalled, 0) and VersionScoreExec >= VersionScorePath, "Exec",
+    coalesce(VersionScoreInstalled, 0) >= VersionScorePath, "Installed",
+    "Path"
+)
+| extend EffectivePythonVersion = case(
+    EffectivePythonSource == "Exec",      ExecPythonVersion,
+    EffectivePythonSource == "Installed", RiskiestInstalledVersion,
+    PathVerRaw
+)
+| extend EffectivePythonStatus = case(
+    EffectivePythonSource == "Installed" and isnotempty(RiskiestInstalledLifecycleStatus), RiskiestInstalledLifecycleStatus,
+    VersionScore >= 50, "EOL - Kritično (Python 2 / <= 3.7)",
+    VersionScore >= 45, "EOL - Python 3.8",
+    VersionScore >= 40, "EOL - Python 3.9",
+    VersionScore >= 30, "Upcoming EOL - Python 3.10",
+    VersionScore >= 10, "Security only - Python 3.11",
+    VersionScore == 0 and isnotempty(ExecPythonVersion), "Supported",
+    "Unknown"
+)
+| extend ExecPythonVersionDefinition = case(
+    isempty(ExecPythonVersion), "",
+    ExecPyMajor < 3, "Python 2 / legacy",
+    ExecPyMajor == 3 and coalesce(ExecPyMinor, -1) <= 10, "Python <= 3.10",
+    "Python >= 3.11"
+)
+| extend ExecPythonLifecycleStatus = case(
+    isempty(ExecPythonVersion), "",
+    ExecPyMajor < 3, "EOL",
+    ExecPyMajor == 3 and ExecPyMinor <= 9, "EOL",
+    ExecPyMajor == 3 and ExecPyMinor == 10, "Upcoming EOL",
+    ExecPyMajor == 3 and ExecPyMinor == 11, "Supported (security only)",
+    "Supported"
+)
+| extend RiskScore = VersionScore
+| extend RiskScore = RiskScore + case(
+    coalesce(CriticalVulnCount, 0) >= 5, 30,
+    coalesce(CriticalVulnCount, 0) >= 1, 20,
+    coalesce(HighVulnCount, 0) >= 5, 15,
+    coalesce(HighVulnCount, 0) >= 1, 10,
+    0
+)
+| extend RiskScore = RiskScore + iff(isnotempty(LastExecution), 15, 0)
+| extend RiskScore = RiskScore + case(
+    LastSeen > ago(7d),  10,
+    LastSeen > ago(14d),  6,
+    LastSeen > ago(21d),  3,
+    0
+)
+| extend RiskScore = RiskScore + iff(
+    tolower(coalesce(ExecUsername, FileEventUser, LastInteractiveUser)) in ("administrator", "admin", "root", "system"),
+    5,
+    0
+)
+| summarize
+    TotalPythonScripts   = dcount(FullPath),
+    ExecutedScripts30d   = countif(isnotempty(LastExecution)),
+    HostFirstSeen        = min(FirstSeen),
+    HostLastSeen         = max(LastSeen),
+    HostLastExecution    = max(LastExecution),
+    HostMaxRiskScore     = max(RiskScore),
+    HostMaxVersionScore  = max(VersionScore),
+    Users                = strcat_array(make_set(coalesce(ExecUsername, FileEventUser, LastInteractiveUser), 20), ", "),
+    UserUPNs             = strcat_array(make_set(coalesce(ExecUPN, FileEventUPN), 20), ", "),
+    ScriptList           = strcat_array(make_set(FullPath, 50), " | "),
+    PythonHosts          = strcat_array(make_set(PythonHost, 10), ", "),
+    CriticalVulnCount    = max(CriticalVulnCount),
+    HighVulnCount        = max(HighVulnCount),
+    TotalHighCritical    = max(TotalHighCritical),
+    CriticalCVEs         = strcat_array(make_set(CriticalCVEs, 10), " | "),
+    HighCVEs             = strcat_array(make_set(HighCVEs, 10), " | "),
+    UserLastSeen         = max(UserLastSeen),
+    arg_max(
+        RiskScore,
+        EffectivePythonVersion,
+        EffectivePythonSource,
+        EffectivePythonStatus,
+        ExecPythonVersion,
+        ExecPythonVersionDefinition,
+        ExecPythonLifecycleStatus,
+        InstalledPythonVersions,
+        InstalledPythonNames,
+        InstalledPythonDefinitions,
+        InstalledPythonLifecycle,
+        LegacyPythonPresent,
+        LegacyPythonVersions,
+        EolPythonPresent,
+        EolPythonVersions,
+        UpcomingEolPythonPresent,
+        UpcomingEolVersions,
+        RiskiestInstalledVersion,
+        RiskiestInstalledLifecycleStatus,
+        RiskiestInstalledDefinition
+    )
+  by DeviceId, DeviceName
+| extend PriorityGroup = case(
+    HostMaxVersionScore >= 40, "P1 - Kritično 🔴",
+    HostMaxVersionScore >= 30, "P2 - Visoko 🟠",
+    HostMaxRiskScore >= 70, "P1 - Kritično 🔴",
+    HostMaxRiskScore >= 50, "P2 - Visoko 🟠",
+    HostMaxRiskScore >= 30, "P3 - Srednje 🟡",
+    HostMaxRiskScore >= 10, "P4 - Nizko 🟢",
+    "P5 - Informativno ⚪"
+)
+| extend PotrebnaAkcija = case(
+    HostMaxVersionScore >= 40, "JA - Urgentno (Python EOL) ⚠️",
+    HostMaxVersionScore >= 30, "JA - Visoko (Python 3.10 / upcoming EOL) ⚠️",
+    HostMaxRiskScore >= 50, "JA - Urgentno ⚠️",
+    HostMaxRiskScore >= 30, "JA - Planirano 📋",
+    "NE"
+)
+| project
+    PriorityGroup,
+    HostMaxRiskScore,
+    PotrebnaAkcija,
+    DeviceName,
+    TotalPythonScripts,
+    ExecutedScripts30d,
+    HostFirstSeen,
+    HostLastSeen,
+    HostLastExecution,
+    Users,
+    UserUPNs,
+    EffectivePythonVersion,
+    EffectivePythonSource,
+    EffectivePythonStatus,
+    RiskiestInstalledVersion,
+    RiskiestInstalledLifecycleStatus,
+    RiskiestInstalledDefinition,
+    ExecPythonVersion,
+    ExecPythonVersionDefinition,
+    ExecPythonLifecycleStatus,
+    InstalledPythonVersions,
+    InstalledPythonNames,
+    InstalledPythonDefinitions,
+    InstalledPythonLifecycle,
+    LegacyPythonPresent,
+    LegacyPythonVersions,
+    EolPythonPresent,
+    EolPythonVersions,
+    UpcomingEolPythonPresent,
+    UpcomingEolVersions,
+    CriticalVulnCount,
+    HighVulnCount,
+    TotalHighCritical,
+    CriticalCVEs,
+    HighCVEs,
+    PythonHosts,
+    ScriptList,
+    UserLastSeen
+| order by HostMaxRiskScore desc, HostLastExecution desc
