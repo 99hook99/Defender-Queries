@@ -1,0 +1,7 @@
+DeviceTvmSoftwareInventory
+| where isnotempty(EndOfSupportStatus)
+| where SoftwareName startswith "windows"
+| join kind=inner (
+    DeviceInfo
+) on DeviceName
+| summarize Latest = arg_max(TimeGenerated, SoftwareName, EndOfSupportStatus, SensorHealthState, OSDistribution, OSVersion, OSBuild) by DeviceName
