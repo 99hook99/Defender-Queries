@@ -1,0 +1,97 @@
+let PythonInterpreters310AndOlder =
+    DeviceTvmSoftwareInventory
+    | extend SWName = trim(" ", tolower(SoftwareName))
+    | where
+        // "Python", "Python 3.9", "Python 3.9.13", "Python 3.9.13 (64-bit)"
+        SWName matches regex @"^python(\s+\d+(\.\d+){0,2}(\s*\([^)]*\))?)?$"
+        // "python3", "python3.9", "python2.7" - brez paketov tipa python3-dbus
+        or SWName matches regex @"^python\d+(\.\d+){0,2}$"
+    | extend VersionText = iff(isnotempty(SoftwareVersion), SoftwareVersion, extract(@"(\d+(\.\d+){0,2})", 1, SoftwareName))
+    | extend PyMajor = toint(extract(@"^(\d+)", 1, VersionText)),
+             PyMinor = toint(extract(@"^\d+\.(\d+)", 1, VersionText))
+    | where isnotempty(PyMajor)
+    | where PyMajor < 3 or (PyMajor == 3 and coalesce(PyMinor, 0) <= 10)
+    | project
+        DeviceId,
+        DeviceName,
+        PythonName = SoftwareName,
+        PythonVersion = VersionText
+    | distinct DeviceId, DeviceName, PythonName, PythonVersion;
+
+let PythonCVEs =
+    DeviceTvmSoftwareVulnerabilities
+    | extend SWName = trim(" ", tolower(SoftwareName))
+    | where
+        SWName matches regex @"^python(\s+\d+(\.\d+){0,2}(\s*\([^)]*\))?)?$"
+        or SWName matches regex @"^python\d+(\.\d+){0,2}$"
+    | extend VersionText = iff(isnotempty(SoftwareVersion), SoftwareVersion, extract(@"(\d+(\.\d+){0,2})", 1, SoftwareName))
+    | extend PyMajor = toint(extract(@"^(\d+)", 1, VersionText)),
+             PyMinor = toint(extract(@"^\d+\.(\d+)", 1, VersionText))
+    | where isnotempty(PyMajor)
+    | where PyMajor < 3 or (PyMajor == 3 and coalesce(PyMinor, 0) <= 10)
+    | summarize
+        PythonCveCount = dcount(CveId),
+        PythonCVEs = make_set(CveId, 100)
+      by DeviceId, SoftwareName, VersionText;
+
+let PythonPaths =
+    DeviceTvmSoftwareEvidenceBeta
+    | extend SWName = trim(" ", tolower(SoftwareName))
+    | where
+        SWName matches regex @"^python(\s+\d+(\.\d+){0,2}(\s*\([^)]*\))?)?$"
+        or SWName matches regex @"^python\d+(\.\d+){0,2}$"
+    | extend VersionText = iff(isnotempty(SoftwareVersion), SoftwareVersion, extract(@"(\d+(\.\d+){0,2})", 1, SoftwareName))
+    | extend PyMajor = toint(extract(@"^(\d+)", 1, VersionText)),
+             PyMinor = toint(extract(@"^\d+\.(\d+)", 1, VersionText))
+    | where isnotempty(PyMajor)
+    | where PyMajor < 3 or (PyMajor == 3 and coalesce(PyMinor, 0) <= 10)
+    | mv-expand DiskPath = DiskPaths to typeof(string)
+    | project
+        DeviceId,
+        PythonName = SoftwareName,
+        PythonVersion = VersionText,
+        PythonPath = DiskPath
+    | distinct DeviceId, PythonName, PythonVersion, PythonPath;
+
+let LastUser =
+    DeviceLogonEvents
+    | where LogonType in ("Interactive", "RemoteInteractive", "CachedInteractive")
+    | summarize arg_max(Timestamp, AccountName, AccountDomain) by DeviceId
+    | project
+        DeviceId,
+        Username = AccountName,
+        AccountDomain,
+        UserLastSeen = Timestamp;
+
+let IdentityMap =
+    IdentityInfo
+    | summarize arg_max(Timestamp, AccountUpn, EmailAddress) by AccountName, AccountDomain
+    | project
+        AccountName,
+        AccountDomain,
+        Email = coalesce(EmailAddress, AccountUpn);
+
+PythonInterpreters310AndOlder
+| join kind=leftouter (
+    PythonCVEs
+    | project
+        DeviceId,
+        PythonName = SoftwareName,
+        PythonVersion = VersionText,
+        PythonCveCount,
+        PythonCVEs
+) on DeviceId, PythonName, PythonVersion
+| join kind=leftouter PythonPaths on DeviceId, PythonName, PythonVersion
+| join kind=leftouter LastUser on DeviceId
+| join kind=leftouter IdentityMap on $left.Username == $right.AccountName and $left.AccountDomain == $right.AccountDomain
+| project
+    DeviceName,
+    PythonName,
+    PythonVersion,
+    PythonPath,
+    Username,
+    Email,
+    UserLastSeen,
+    PythonCveCount = coalesce(PythonCveCount, 0),
+    PythonCVEs
+| order by PythonCveCount desc, DeviceName asc, PythonVersion asc, PythonPath asc
