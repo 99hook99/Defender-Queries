@@ -1,0 +1,15 @@
+let URLList = externaldata(event_date: string, url: string)[@"https://www.cert.si/misp/urls/all.txt"]
+with (format="csv", ignoreFirstRecord=True);
+let URLArray = URLList
+    | distinct url;
+DeviceNetworkEvents
+| where RemoteUrl has_any (URLArray)
+| project
+     Timestamp,
+     DeviceId,
+     DeviceName,
+     InitiatingProcessAccountName,
+     InitiatingProcessAccountDomain,
+     InitiatingProcessCommandLine,
+     RemoteUrl,
+     ReportId
