@@ -11,7 +11,7 @@ A curated, auto-synced collection of KQL queries for Microsoft Defender and othe
 | External queries (source files) | 723 |
 | Custom queries | 1 |
 | Sources | 4 |
-| Last sync | 2026-05-09 09:09:53 UTC |
+| Last sync | 2026-05-10 09:23:07 UTC |
 
 ## Recently Added
 
