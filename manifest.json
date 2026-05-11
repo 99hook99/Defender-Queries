@@ -11637,7 +11637,23 @@
       "file_type": "kql",
       "added_at": "2026-04-07T12:18:55.301507+00:00",
       "updated_at": "2026-04-07T12:18:55.301507+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Defender For Endpoint/OutboundMSHTA.md": {
+      "sha": "7ed36d4e293f33efae3482f492d7b190af9aaf2a",
+      "local_path": "queries/external/endpoint/OutboundMSHTA_DefenderXDR.kql",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "topic": "endpoint",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 2,
+      "added_at": "2026-05-11T10:53:49.705914+00:00",
+      "updated_at": "2026-05-11T10:53:49.705914+00:00"
     }
   },
-  "last_sync": "2026-05-10T09:23:07.727506+00:00"
+  "last_sync": "2026-05-11T10:54:03.039775+00:00"
 }

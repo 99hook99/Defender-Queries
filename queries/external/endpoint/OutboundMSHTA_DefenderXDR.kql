@@ -1,0 +1,4 @@
+DeviceNetworkEvents
+| where InitiatingProcessFileName =~ "mshta.exe"
+| where RemoteIPType == "Public" or not(ipv4_is_private(RemoteIP))
+| project-reorder Timestamp, InitiatingProcessCommandLine, RemoteUrl, RemoteIP, DeviceName, InitiatingProcessAccountUpn

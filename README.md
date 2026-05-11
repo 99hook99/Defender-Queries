@@ -8,10 +8,10 @@ A curated, auto-synced collection of KQL queries for Microsoft Defender and othe
 
 | | |
 |---|---|
-| External queries (source files) | 723 |
+| External queries (source files) | 724 |
 | Custom queries | 1 |
 | Sources | 4 |
-| Last sync | 2026-05-10 09:23:07 UTC |
+| Last sync | 2026-05-11 10:54:03 UTC |
 
 ## Recently Added
 
@@ -26,7 +26,7 @@ Queries are organised by topic, regardless of source. Each topic folder contains
 | Folder | Topic | Files |
 |--------|-------|-------|
 | `identity` | Identity & Authentication | 142 |
-| `endpoint` | Endpoint & Device Security | 161 |
+| `endpoint` | Endpoint & Device Security | 162 |
 | `email` | Email & Office 365 | 36 |
 | `cloud` | Cloud Infrastructure (Azure) | 23 |
 | `vulnerabilities` | Vulnerabilities & Patch Management | 97 |
@@ -44,7 +44,7 @@ Queries are organised by topic, regardless of source. Each topic folder contains
 
 | Group | Repository | Platform | Format | Files | Description |
 |-------|-----------|----------|--------|-------|-------------|
-| **community** | [Bert-JanP Hunting Queries](https://github.com/Bert-JanP/Hunting-Queries-Detection-Rules) | MDE, Sentinel, DefenderXDR | `markdown` | 309 | Large collection of hunting queries and detection rules across Azure AD, MDE, Sentinel and XDR |
+| **community** | [Bert-JanP Hunting Queries](https://github.com/Bert-JanP/Hunting-Queries-Detection-Rules) | MDE, Sentinel, DefenderXDR | `markdown` | 310 | Large collection of hunting queries and detection rules across Azure AD, MDE, Sentinel and XDR |
 | **community** | [cyb3rmik3 KQL Threat Hunting](https://github.com/cyb3rmik3/KQL-threat-hunting-queries) | MDE, Sentinel, DefenderXDR, Azure | `markdown` | 86 | Threat hunting and detection queries organized by product: Azure, MDE, Sentinel, Office365, EASM, MDVM |
 | **community** | [SlimKQL Hunting Queries](https://github.com/SlimKQL/Hunting-Queries-Detection-Rules) | Sentinel, DefenderXDR, Azure, ADX | `kql` | 320 | Standalone KQL files organized by product: Azure, DefenderXDR, Sentinel, ADX — includes IOC lists |
 | **community** | [KQL Cafe – KustoCon](https://github.com/KQLCafe/kustocon) | Sentinel, MDE | `kql` | 8 | KQL Cafe conference queries and demos |
