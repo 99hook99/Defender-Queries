@@ -1,0 +1,9 @@
+let Timeframe = 7d; // Define the required Timeframe
+Usage
+| where TimeGenerated >= ago(Timeframe)
+| where IsBillable == true
+| extend Hour = datetime_part("hour", TimeGenerated)
+| summarize IngestedGB = sum(Quantity) / 1000.0 by Hour, Plan
+| evaluate pivot(Plan, sum(IngestedGB))
+| order by Hour asc
+| render columnchart

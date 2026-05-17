@@ -11653,7 +11653,58 @@
       "kql_blocks": 2,
       "added_at": "2026-05-11T10:53:49.705914+00:00",
       "updated_at": "2026-05-11T10:53:49.705914+00:00"
+    },
+    "cyb3rmik3/KQL-threat-hunting-queries/Sentinel/average-daily-ingestion-per-table-and-plan.md": {
+      "sha": "90bb0ed913139783c813a525a3b61ed8e535860a",
+      "local_path": "queries/external/xdr/average-daily-ingestion-per-table-and-plan_Sentinel.kql",
+      "source": "cyb3rmik3 KQL Threat Hunting",
+      "slug": "cyb3rmik3",
+      "topic": "xdr",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR",
+        "Azure"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-05-17T09:28:12.471559+00:00",
+      "updated_at": "2026-05-17T09:28:12.471559+00:00"
+    },
+    "cyb3rmik3/KQL-threat-hunting-queries/Sentinel/estimate-potential-savings-by-moving-tables-to-data-lake.md": {
+      "sha": "02afa31ebe582184d74427e8bd192ac103072e37",
+      "local_path": "queries/external/xdr/estimate-potential-savings-by-moving-tables-to-data-lake_Sentinel.kql",
+      "source": "cyb3rmik3 KQL Threat Hunting",
+      "slug": "cyb3rmik3",
+      "topic": "xdr",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR",
+        "Azure"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-05-17T09:28:12.594171+00:00",
+      "updated_at": "2026-05-17T09:28:12.594171+00:00"
+    },
+    "cyb3rmik3/KQL-threat-hunting-queries/Sentinel/ingestion-trend-by-hour-of-day.md": {
+      "sha": "bc0afa2d995cb20bae8a56bb2020fd05b33daf00",
+      "local_path": "queries/external/xdr/ingestion-trend-by-hour-of-day_Sentinel.kql",
+      "source": "cyb3rmik3 KQL Threat Hunting",
+      "slug": "cyb3rmik3",
+      "topic": "xdr",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR",
+        "Azure"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-05-17T09:28:12.710183+00:00",
+      "updated_at": "2026-05-17T09:28:12.710183+00:00"
     }
   },
-  "last_sync": "2026-05-16T09:22:41.590576+00:00"
+  "last_sync": "2026-05-17T09:28:13.879120+00:00"
 }

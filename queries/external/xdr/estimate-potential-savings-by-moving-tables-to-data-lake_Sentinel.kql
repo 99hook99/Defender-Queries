@@ -1,0 +1,13 @@
+let AnalyticsPricePerGB = 2.48; // Example price per GB for Analytics
+let DataLakePricePerGB = 0.05; // Example price per GB for Data Lake
+Usage
+| where TimeGenerated >= startofday(ago(30d))
+| where IsBillable == true
+| summarize IngestedGB = round(sum(Quantity) / 1000.0, 2) by DataType, Plan
+| where Plan == "Analytics"
+| extend CurrentCost = round(IngestedGB * AnalyticsPricePerGB, 2)
+| extend IfDataLakeCost = round(IngestedGB * DataLakePricePerGB, 2)
+| extend PotentialSavings = round(CurrentCost - IfDataLakeCost, 2)
+| where PotentialSavings > 0
+| project DataType, IngestedGB, CurrentCost, IfDataLakeCost, PotentialSavings
+| order by PotentialSavings desc

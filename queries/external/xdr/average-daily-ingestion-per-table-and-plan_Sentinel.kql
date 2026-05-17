@@ -1,0 +1,8 @@
+let Timeframe = 30d; // Define the required Timeframe
+let decfra = 2; // Determine the size of fractional part to fit your need
+Usage
+| where TimeGenerated >= startofday(ago(Timeframe))
+| where IsBillable == true
+| summarize DailyGB = sum(Quantity) / 1000.0 by bin(TimeGenerated, 1d), DataType, Plan
+| summarize AvgDailyGB = round(avg(DailyGB), decfra) by DataType, Plan
+| order by AvgDailyGB desc
