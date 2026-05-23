@@ -1,0 +1,15 @@
+AuditLogs
+| where OperationName =~ "Triggered PIM alert"
+| where Category =~ "RoleManagement"
+| extend AlertDescription = TargetResources[0].displayName
+| extend Severity = case(
+	AlertDescription =~ "Roles are being assigned outside of Privileged Identity Management" or AlertDescription =~ "Role assigned outside of PIM", "High",
+	AlertDescription =~ "Potential stale accounts in a privileged role", "Medium",
+	AlertDescription =~ "Administrators aren't using their privileged roles", "Low",
+	AlertDescription =~ "Roles don't require multifactor authentication for activation", "Low",
+	AlertDescription =~ "The organization doesn't have Microsoft Entra ID P2 or Microsoft Entra ID Governance", "Low",
+	AlertDescription =~ "There are too many Global Administrators", "Low",
+	AlertDescription =~ "Roles are being activated too frequently", "Low",
+	"Unknown"
+)
+| project-reorder TimeGenerated, OperationName, Category, AlertDescription, Severity

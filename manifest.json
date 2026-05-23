@@ -11704,7 +11704,23 @@
       "kql_blocks": 1,
       "added_at": "2026-05-17T09:28:12.710183+00:00",
       "updated_at": "2026-05-17T09:28:12.710183+00:00"
+    },
+    "Bert-JanP/Hunting-Queries-Detection-Rules/Azure Active Directory/PIMAlerts.md": {
+      "sha": "8bf401b9b07681825da5d7ead06b44927fd24c18",
+      "local_path": "queries/external/identity/PIMAlerts_Sentinel.kql",
+      "source": "Bert-JanP Hunting Queries",
+      "slug": "bert-janp",
+      "topic": "identity",
+      "platform": [
+        "MDE",
+        "Sentinel",
+        "DefenderXDR"
+      ],
+      "file_type": "markdown",
+      "kql_blocks": 1,
+      "added_at": "2026-05-23T09:44:18.052509+00:00",
+      "updated_at": "2026-05-23T09:44:18.052509+00:00"
     }
   },
-  "last_sync": "2026-05-22T10:43:04.878514+00:00"
+  "last_sync": "2026-05-23T09:44:31.402357+00:00"
 }
