@@ -1,0 +1,563 @@
+{
+    "version": "Notebook/1.0",
+    "items": [
+        {
+            "type": 9,
+            "content": {
+                "version": "KqlParameterItem/1.0",
+                "parameters": [
+                    {
+                        "id": "26d2fea7-3646-4993-b79f-6722f9ef8ddb",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "DefaultSubscription_Internal",
+                        "type": 1,
+                        "isRequired": true,
+                        "query": "where type =~ 'microsoft.operationalinsights/workspaces'\n| take 1\n| project subscriptionId",
+                        "isHiddenWhenLocked": true,
+                        "timeContextFromParameter": "TimeRange",
+                        "queryType": 1,
+                        "resourceType": "microsoft.resourcegraph/resources",
+                        "key": "26d2fea7-3646-4993-b79f-6722f9ef8ddb"
+                    },
+                    {
+                        "id": "109f8d4a-05e3-4d1b-adac-087873d109a6",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "InternalWSs",
+                        "type": 1,
+                        "isRequired": true,
+                        "query": "SecurityIncident\n| take 1\n| parse IncidentUrl with * \"/workspaces/\" Workspace \"/\" *\n| project Workspace",
+                        "isHiddenWhenLocked": true,
+                        "timeContext": {
+                            "durationMs": 86400000
+                        },
+                        "queryType": 0,
+                        "resourceType": "microsoft.operationalinsights/workspaces",
+                        "key": "109f8d4a-05e3-4d1b-adac-087873d109a6"
+                    },
+                    {
+                        "id": "55d3ab63-6e1f-4d02-8d9e-2225526689c7",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "Subscription",
+                        "type": 6,
+                        "query": "summarize by subscriptionId\n| project value = strcat(\"/subscriptions/\", subscriptionId), label = subscriptionId, selected = iff(subscriptionId =~ '{DefaultSubscription_Internal}', true, false)",
+                        "crossComponentResources": [
+                            "value::all"
+                        ],
+                        "typeSettings": {
+                            "showDefault": false
+                        },
+                        "timeContext": {
+                            "durationMs": 0
+                        },
+                        "timeContextFromParameter": "TimeRange",
+                        "queryType": 1,
+                        "resourceType": "microsoft.resourcegraph/resources",
+                        "key": "55d3ab63-6e1f-4d02-8d9e-2225526689c7"
+                    },
+                    {
+                        "id": "95a45501-31b5-4ea2-bcb3-eb208e0080e2",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "Workspace",
+                        "type": 5,
+                        "isRequired": true,
+                        "query": "where type =~ \"microsoft.operationalinsights/workspaces\"\r\n| project subscriptionId,id,name\r\n| where '{Subscription}' has subscriptionId\r\n| project value =id, label = name, selected = iff(name =~ '{InternalWSs}', true, false)",
+                        "crossComponentResources": [
+                            "value::all"
+                        ],
+                        "typeSettings": {
+                            "showDefault": false
+                        },
+                        "timeContextFromParameter": "TimeRange",
+                        "queryType": 1,
+                        "resourceType": "microsoft.resourcegraph/resources",
+                        "key": "95a45501-31b5-4ea2-bcb3-eb208e0080e2"
+                    },
+                    {
+                        "id": "7d597ad7-4a2a-45ed-a4fe-7ee32de0fc22",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "TimeRange",
+                        "label": "Time Range",
+                        "type": 4,
+                        "isRequired": true,
+                        "value": {
+                            "durationMs": 2592000000
+                        },
+                        "typeSettings": {
+                            "selectableValues": [
+                                {
+                                    "durationMs": 14400000
+                                },
+                                {
+                                    "durationMs": 43200000
+                                },
+                                {
+                                    "durationMs": 86400000
+                                },
+                                {
+                                    "durationMs": 172800000
+                                },
+                                {
+                                    "durationMs": 259200000
+                                },
+                                {
+                                    "durationMs": 604800000
+                                },
+                                {
+                                    "durationMs": 1209600000
+                                },
+                                {
+                                    "durationMs": 2592000000
+                                }
+                            ],
+                            "allowCustom": true
+                        },
+                        "key": "7d597ad7-4a2a-45ed-a4fe-7ee32de0fc22"
+                    },
+                    {
+                        "id": "9a199167-2dde-49dd-8f01-23e9d1fa8151",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "InternalRG",
+                        "type": 1,
+                        "isRequired": true,
+                        "query": "where type =~ \"microsoft.operationalinsights/workspaces\"\r\n| where id =~  \"{Workspace}\"\r\n| project resourceGroup",
+                        "crossComponentResources": [
+                            "{Workspace}"
+                        ],
+                        "isHiddenWhenLocked": true,
+                        "timeContext": {
+                            "durationMs": 0
+                        },
+                        "timeContextFromParameter": "TimeRange",
+                        "queryType": 1,
+                        "resourceType": "microsoft.resourcegraph/resources",
+                        "key": "9a199167-2dde-49dd-8f01-23e9d1fa8151"
+                    }
+                ],
+                "style": "pills"
+            },
+            "customWidth": "100",
+            "name": "WSSelector",
+            "id": "847a140b-0da4-404e-9399-bde84bae586e"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "# TIFCE (TI Feed Content Evaluation)\n---\n\nTIFCE (Threat Intelligence Feed Content Evaluation) is a practical model designed to assess the intrinsic value of threat intelligence feeds before operational use. Rather than focusing on volume or reputation, it evaluates how feeds behave within real security telemetry.\n\nThe model addresses the risks of duplication, noise, and false coverage caused by overlapping sources. Built on four key pillars, TIFCE helps organizations identify feeds that truly enhance detection and reduce operational overhead."
+            },
+            "name": "text - 2",
+            "id": "d994102f-fbcb-4080-9fcc-2c1239e858e8"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "## Threat feeds\r\n---\r\n\r\nBelow you may find your threat intelligence feeds connected to your environment, based on last 30 days telemetry."
+            },
+            "name": "text - 2",
+            "id": "20973c06-ddb0-41b5-af17-66fea1261b17"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "ThreatIntelIndicators\n    | summarize by SourceSystem, LastUpdateMethod\n    | distinct SourceSystem\n    | project-rename ThreatFeeds = SourceSystem",
+                "size": 3,
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "visualization": "card",
+                "gridSettings": {
+                    "sortBy": [
+                        {
+                            "itemKey": "ThreatFeeds",
+                            "sortOrder": 1
+                        }
+                    ]
+                },
+                "sortBy": [
+                    {
+                        "itemKey": "ThreatFeeds",
+                        "sortOrder": 1
+                    }
+                ],
+                "textSettings": {
+                    "style": "header"
+                },
+                "crossComponentResources": [
+                    "{Workspace}"
+                ],
+                "timeContextFromParameter": "TimeRange"
+            },
+            "name": "query - 2",
+            "id": "521cc9d5-8ec6-42db-a63a-064c2889d311"
+        },
+        {
+            "type": 12,
+            "content": {
+                "version": "NotebookGroup/1.0",
+                "groupType": "editable",
+                "items": [
+                    {
+                        "type": 1,
+                        "content": {
+                            "json": "## Unique IOCs — Measuring Originality of the Feed\r\n---\r\n\r\nMeasures how much a feed contributes truly original indicators that are not already duplicated across other sources."
+                        },
+                        "name": "tifce1-text",
+                        "styleSettings": {
+                            "showBorder": false,
+                            "borderStyle": "light thick",
+                            "x": 0,
+                            "y": 0,
+                            "w": 24,
+                            "h": 6
+                        },
+                        "id": "86a2342f-9495-4309-9efc-5811b23caddb"
+                    },
+                    {
+                        "type": 12,
+                        "content": {
+                            "version": "NotebookGroup/1.0",
+                            "groupType": "editable",
+                            "items": [
+                                {
+                                    "type": 3,
+                                    "content": {
+                                        "version": "KqlItem/1.0",
+                                        "query": "// ================================================\r\n// TIFCE Pillar 1: Originality Score (Uniqueness)\r\n// ================================================\r\n// Purpose:\r\n// - Measure how much a feed contributes indicators that are not already\r\n//   broadly present across other feeds.\r\n//\r\n// Scoring logic:\r\n// - Each IOC gets a weight of 1 / FeedCount\r\n// - If only one feed has the IOC, it contributes 1.0 to that feed\r\n// - If 5 feeds share the IOC, it contributes 0.2 to each feed\r\n// - Feeds with more exclusive IOCs get higher originality scores\r\n\r\n// Step 1: Build a deduplicated set of active IOCs per feed\r\nlet ActiveIndicators =\r\n    ThreatIntelIndicators\r\n    | where IsActive == true\r\n      and IsDeleted == false\r\n      and (isnull(ValidUntil) or ValidUntil > now())\r\n    | where isnotempty(ObservableKey) and isnotempty(ObservableValue)\r\n    | extend\r\n        // Feed identifier used for scoring\r\n        TIFeed = tostring(SourceSystem),\r\n        // Canonical IOC format used consistently across the query\r\n        // Normalization helps avoid mismatches caused by casing or extra spaces\r\n        IOC = strcat(\r\n            tolower(trim(\" \", tostring(ObservableKey))),\r\n            \":\",\r\n            tolower(trim(\" \", tostring(ObservableValue)))\r\n        )\r\n    // Deduplicate so the same feed-IOC pair is only counted once\r\n    | summarize by TIFeed, IOC;\r\n// Step 2: Count how many distinct feeds report each IOC\r\nlet IOCFeedCounts =\r\n    ActiveIndicators\r\n    | summarize FeedCount = dcount(TIFeed) by IOC;\r\n// Step 3: Join feed IOCs to IOC distribution and calculate originality\r\nActiveIndicators\r\n| join kind=inner IOCFeedCounts on IOC\r\n| summarize\r\n    // Sum of fractional IOC contributions for the feed\r\n    OriginalityScore = sum(1.0 / FeedCount),\r\n    // Total distinct IOCs contributed by the feed\r\n    TotalIOCs = count(),\r\n    // Count of IOCs seen only in this single feed\r\n    ExclusiveIOCs = countif(FeedCount == 1)\r\n    by TIFeed\r\n| extend\r\n    // Average originality contribution per IOC\r\n    AvgOriginalityPerIOC = round(OriginalityScore / TotalIOCs, 4),\r\n    // Same idea expressed as a percentage for easier comparison\r\n    OriginalityPct = round(100.0 * OriginalityScore / TotalIOCs, 2)\r\n| order by OriginalityScore desc\r\n| project\r\n    Feed = TIFeed,\r\n    OriginalityScore,\r\n    TotalIOCs,\r\n    AvgOriginalityPerIOC,\r\n    OriginalityPct,\r\n    ExclusiveIOCs",
+                                        "size": 0,
+                                        "queryType": 0,
+                                        "resourceType": "microsoft.operationalinsights/workspaces",
+                                        "crossComponentResources": [
+                                            "{Workspace}"
+                                        ],
+                                        "timeContextFromParameter": "TimeRange"
+                                    },
+                                    "name": "query - 0",
+                                    "id": "da5adccb-bb6f-4dcd-8508-4d893d29a5e4"
+                                }
+                            ],
+                            "layout": {
+                                "type": "flow"
+                            }
+                        },
+                        "customWidth": "70",
+                        "name": "tifcepillar1-datatable",
+                        "styleSettings": {
+                            "margin": "10"
+                        },
+                        "id": "f92deab9-e574-4f77-8d49-449c6cd5d6a9"
+                    },
+                    {
+                        "type": 12,
+                        "content": {
+                            "version": "NotebookGroup/1.0",
+                            "groupType": "editable",
+                            "items": [
+                                {
+                                    "type": 3,
+                                    "content": {
+                                        "version": "KqlItem/1.0",
+                                        "query": "// ================================================\r\n// TIFCE Pillar 1: Originality Score (Uniqueness)\r\n// ================================================\r\n// Purpose:\r\n// - Measure how much a feed contributes indicators that are not already\r\n//   broadly present across other feeds.\r\n// - Provide graph-friendly output focused on feed and originality percent.\r\n//\r\n// Scoring logic:\r\n// - Each IOC gets a weight of 1 / FeedCount\r\n// - If only one feed has the IOC, it contributes 1.0 to that feed\r\n// - If 5 feeds share the IOC, it contributes 0.2 to each feed\r\n// - Feeds with more exclusive IOCs get higher originality scores\r\n\r\n// Step 1: Build a deduplicated set of active IOCs per feed\r\nlet ActiveIndicators =\r\n    ThreatIntelIndicators\r\n    | where IsActive == true\r\n      and IsDeleted == false\r\n      and (isnull(ValidUntil) or ValidUntil > now())\r\n    | where isnotempty(ObservableKey) and isnotempty(ObservableValue)\r\n    | extend\r\n        // Feed identifier used for scoring\r\n        TIFeed = tostring(SourceSystem),\r\n        // Canonical IOC format used consistently across the query\r\n        // Normalization helps avoid mismatches caused by casing or extra spaces\r\n        IOC = strcat(\r\n            tolower(trim(\" \", tostring(ObservableKey))),\r\n            \":\",\r\n            tolower(trim(\" \", tostring(ObservableValue)))\r\n        )\r\n    // Deduplicate so the same feed-IOC pair is only counted once\r\n    | summarize by TIFeed, IOC;\r\n// Step 2: Count how many distinct feeds report each IOC\r\nlet IOCFeedCounts =\r\n    ActiveIndicators\r\n    | summarize FeedCount = dcount(TIFeed) by IOC;\r\n// Step 3: Join feed IOCs to IOC distribution and calculate originality\r\nActiveIndicators\r\n| join kind=inner IOCFeedCounts on IOC\r\n| summarize\r\n    // Sum of fractional IOC contributions for the feed\r\n    OriginalityScore = sum(1.0 / FeedCount),\r\n    // Total distinct IOCs contributed by the feed\r\n    TotalIOCs = count(),\r\n    // Count of IOCs seen only in this single feed\r\n    ExclusiveIOCs = countif(FeedCount == 1)\r\n    by TIFeed\r\n| extend\r\n    // Average originality contribution per IOC\r\n    AvgOriginalityPerIOC = round(OriginalityScore / TotalIOCs, 4),\r\n    // Same idea expressed as a percentage for easier comparison\r\n    OriginalityPct = round(100.0 * OriginalityScore / TotalIOCs, 2)\r\n| order by OriginalityScore desc\r\n| project\r\n    Feed = TIFeed,\r\n    OriginalityPct",
+                                        "size": 0,
+                                        "queryType": 0,
+                                        "resourceType": "microsoft.operationalinsights/workspaces",
+                                        "visualization": "tiles",
+                                        "tileSettings": {
+                                            "showBorder": false,
+                                            "titleContent": {
+                                                "columnMatch": "Feed",
+                                                "formatter": 1
+                                            },
+                                            "leftContent": {
+                                                "columnMatch": "OriginalityPct",
+                                                "formatter": 12,
+                                                "formatOptions": {
+                                                    "palette": "auto"
+                                                },
+                                                "numberFormat": {
+                                                    "unit": 17,
+                                                    "options": {
+                                                        "maximumSignificantDigits": 3,
+                                                        "maximumFractionDigits": 2
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "crossComponentResources": [
+                                            "{Workspace}"
+                                        ],
+                                        "timeContextFromParameter": "TimeRange"
+                                    },
+                                    "name": "query - 0",
+                                    "id": "f7292a0c-d46f-4c0b-8c9e-158a9b597283"
+                                }
+                            ]
+                        },
+                        "customWidth": "30",
+                        "name": "tifcepillar1-graphic",
+                        "styleSettings": {
+                            "margin": "10"
+                        },
+                        "id": "6d3f92b3-48ee-419f-9192-958b6a5edbf1"
+                    }
+                ],
+                "layout": {
+                    "type": "flow"
+                }
+            },
+            "name": "tifcepillar1",
+            "id": "0613194e-094a-411e-adb7-2a0728104003"
+        },
+        {
+            "type": 12,
+            "content": {
+                "version": "NotebookGroup/1.0",
+                "groupType": "editable",
+                "items": [
+                    {
+                        "type": 1,
+                        "content": {
+                            "json": "## Detected IOCs — Measuring Environmental Relevance\r\n---\r\n\r\nAssesses whether the feed’s indicators actually appear in the organization’s real telemetry, proving environmental relevance."
+                        },
+                        "name": "tifcepillar2-text",
+                        "id": "cd545b61-72c7-4869-9236-313af380afef"
+                    },
+                    {
+                        "type": 12,
+                        "content": {
+                            "version": "NotebookGroup/1.0",
+                            "groupType": "editable",
+                            "items": [
+                                {
+                                    "type": 3,
+                                    "content": {
+                                        "version": "KqlItem/1.0",
+                                        "query": "// ================================================\r\n// TIFCE Pillar 2: Environmental Relevance\r\n// Query 1: XDR Device + Email telemetry only\r\n//\r\n// Purpose:\r\n// - Identify whether active TI IOCs are found in XDR telemetry.\r\n//\r\n// Supports:\r\n// - file\r\n// - ipv4-addr\r\n// - ipv6-addr\r\n// - network-traffic\r\n// - domain-name\r\n// - url\r\n// - email-addr\r\n//\r\n// No observe / block / deny / disposition logic\r\n// ================================================\r\nlet CanonicalIOC = (iocType:string, iocValue:string) {\r\n    strcat(tolower(trim(\" \", iocType)), \":\", tolower(trim(\" \", iocValue)))\r\n};\r\n// -----------------------------\r\n// Active TI indicators\r\n// -----------------------------\r\nlet ActiveIOCs =\r\n    ThreatIntelIndicators\r\n    | where IsActive == true\r\n      and IsDeleted == false\r\n      and (isnull(ValidUntil) or ValidUntil > now())\r\n    | where isnotempty(SourceSystem)\r\n      and isnotempty(ObservableKey)\r\n      and isnotempty(ObservableValue)\r\n    | extend TIFeed = tostring(SourceSystem)\r\n    | extend IOCTypeRaw = tostring(split(ObservableKey, \":\", 0))\r\n    | extend IOCType = replace_regex(tolower(trim(\" \", IOCTypeRaw)), @\"[\\[\\]\"\"']\", \"\")\r\n    | where IOCType in (\r\n        \"file\",\r\n        \"ipv4-addr\",\r\n        \"ipv6-addr\",\r\n        \"network-traffic\",\r\n        \"domain-name\",\r\n        \"url\",\r\n        \"email-addr\"\r\n    )\r\n    | extend IOC = CanonicalIOC(IOCType, tostring(ObservableValue))\r\n    | summarize by TIFeed, IOC;\r\n// -----------------------------\r\n// IOC matches in XDR telemetry\r\n// -----------------------------\r\nlet TelemetryIOCs =\r\n    union isfuzzy=true\r\n    // Device file hashes\r\n    (\r\n        DeviceFileEvents\r\n        | where isnotempty(SHA256) or isnotempty(SHA1)\r\n        | extend IOCs = pack_array(\r\n            iff(isnotempty(SHA256), CanonicalIOC(\"file\", SHA256), \"\"),\r\n            iff(isnotempty(SHA1), CanonicalIOC(\"file\", SHA1), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | project IOC\r\n    ),\r\n    // Device network IPs, IPv6, network-traffic, URLs, and domains\r\n    (\r\n        DeviceNetworkEvents\r\n        | where isnotempty(RemoteIP) or isnotempty(RemoteUrl)\r\n        | extend UrlHost = iff(isnotempty(RemoteUrl), tostring(parse_url(RemoteUrl).Host), \"\")\r\n        | extend RemoteIPType = iff(RemoteIP contains \":\", \"ipv6-addr\", \"ipv4-addr\")\r\n        | extend IOCs = pack_array(\r\n            iff(isnotempty(RemoteIP), CanonicalIOC(RemoteIPType, RemoteIP), \"\"),\r\n            iff(isnotempty(RemoteIP), CanonicalIOC(\"network-traffic\", RemoteIP), \"\"),\r\n            iff(isnotempty(RemoteUrl), CanonicalIOC(\"url\", RemoteUrl), \"\"),\r\n            iff(isnotempty(UrlHost), CanonicalIOC(\"domain-name\", UrlHost), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | project IOC\r\n    ),\r\n    // Email URLs and domains\r\n    (\r\n        EmailUrlInfo\r\n        | where isnotempty(Url) or isnotempty(UrlDomain)\r\n        | extend IOCs = pack_array(\r\n            iff(isnotempty(Url), CanonicalIOC(\"url\", Url), \"\"),\r\n            iff(isnotempty(UrlDomain), CanonicalIOC(\"domain-name\", UrlDomain), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | project IOC\r\n    ),\r\n    // Email attachment hashes\r\n    (\r\n        EmailAttachmentInfo\r\n        | where isnotempty(SHA256) or isnotempty(SHA1)\r\n        | extend IOCs = pack_array(\r\n            iff(isnotempty(SHA256), CanonicalIOC(\"file\", SHA256), \"\"),\r\n            iff(isnotempty(SHA1), CanonicalIOC(\"file\", SHA1), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | project IOC\r\n    ),\r\n    // Email addresses + derived email domains\r\n    (\r\n        EmailEvents\r\n        | extend SenderFromAddress = tostring(column_ifexists(\"SenderFromAddress\", \"\")),\r\n                 SenderMailFromAddress = tostring(column_ifexists(\"SenderMailFromAddress\", \"\")),\r\n                 RecipientEmailAddress = tostring(column_ifexists(\"RecipientEmailAddress\", \"\"))\r\n        | extend EmailCandidates = pack_array(SenderFromAddress, SenderMailFromAddress, RecipientEmailAddress)\r\n        | mv-expand EmailAddress = EmailCandidates to typeof(string)\r\n        | extend EmailAddress = tolower(trim(\" \", EmailAddress))\r\n        | where isnotempty(EmailAddress) and EmailAddress contains \"@\"\r\n        | extend EmailDomain = tostring(split(EmailAddress, \"@\", 1))\r\n        | extend IOCs = pack_array(\r\n            CanonicalIOC(\"email-addr\", EmailAddress),\r\n            iff(isnotempty(EmailDomain), CanonicalIOC(\"domain-name\", EmailDomain), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | project IOC\r\n    )\r\n    | where isnotempty(IOC)\r\n    | summarize by IOC;\r\n// -----------------------------\r\n// Feed-level relevance scoring\r\n// -----------------------------\r\nActiveIOCs\r\n| join kind=leftouter (\r\n    TelemetryIOCs\r\n    | project TelemetryIOC = IOC\r\n) on $left.IOC == $right.TelemetryIOC\r\n| summarize\r\n    TotalIOCs = count(),\r\n    FoundIOCs = countif(isnotempty(TelemetryIOC)),\r\n    NotFoundIOCs = countif(isempty(TelemetryIOC))\r\n    by TIFeed\r\n| extend\r\n    EnvironmentalRelevanceScore = FoundIOCs,\r\n    RelevancePct = round(\r\n        iif(TotalIOCs > 0, 100.0 * todouble(FoundIOCs) / todouble(TotalIOCs), 0.0),\r\n        2\r\n    ),\r\n    NotFoundPct = round(\r\n        iif(TotalIOCs > 0, 100.0 * todouble(NotFoundIOCs) / todouble(TotalIOCs), 0.0),\r\n        2\r\n    )\r\n| order by EnvironmentalRelevanceScore desc\r\n| project\r\n    Feed = TIFeed,\r\n    TotalIOCs,\r\n    FoundIOCs,\r\n    NotFoundIOCs,\r\n    RelevancePct,\r\n    NotFoundPct,\r\n    EnvironmentalRelevanceScore;",
+                                        "size": 0,
+                                        "queryType": 0,
+                                        "resourceType": "microsoft.operationalinsights/workspaces",
+                                        "crossComponentResources": [
+                                            "{Workspace}"
+                                        ],
+                                        "timeContextFromParameter": "TimeRange"
+                                    },
+                                    "name": "query - 0",
+                                    "id": "031b39f5-a919-488c-98b1-080b8285bbf1"
+                                }
+                            ]
+                        },
+                        "name": "group - 1",
+                        "id": "e337a173-eb4f-443b-8812-fe36af7b2515"
+                    }
+                ]
+            },
+            "name": "tifcepillar2",
+            "id": "6fec1c5c-fe47-4cad-a8be-ddd31698016d"
+        },
+        {
+            "type": 12,
+            "content": {
+                "version": "NotebookGroup/1.0",
+                "groupType": "editable",
+                "items": [
+                    {
+                        "type": 1,
+                        "content": {
+                            "json": "## Malicious IOCs — Measuring Signal Versus Noise\r\n---\r\n\r\nEvaluates if detected indicators represent confirmed threats (true positives) rather than benign or misclassified activity."
+                        },
+                        "name": "tifcepillar2-text",
+                        "id": "c2bd6b8a-90de-4b7e-a598-c5faa7992a8b"
+                    },
+                    {
+                        "type": 3,
+                        "content": {
+                            "version": "KqlItem/1.0",
+                            "query": "// ================================================\r\n// TIFCE Pillar 3: Malicious IOCs — Signal Versus Noise\r\n//\r\n// Purpose:\r\n// - Determine whether active TI IOCs that appeared in XDR telemetry\r\n//   were associated with closed Sentinel incidents classified as TruePositive.\r\n//\r\n// Correlation path:\r\n// - SecurityIncident.AlertIds\r\n//   -> SecurityAlert.SystemAlertId\r\n//   -> SecurityAlert.Entities\r\n//\r\n// Scoring:\r\n// - Closed incident with Classification == \"TruePositive\"\r\n//   = confirmed malicious signal\r\n//\r\n// - Any other closed classification\r\n//   = noise / not confirmed malicious\r\n//\r\n// Supports:\r\n// - file\r\n// - ipv4-addr\r\n// - ipv6-addr\r\n// - network-traffic\r\n// - domain-name\r\n// - url\r\n// - email-addr\r\n//\r\n// Required tables:\r\n// - ThreatIntelIndicators\r\n// - DeviceFileEvents\r\n// - DeviceNetworkEvents\r\n// - EmailUrlInfo\r\n// - EmailAttachmentInfo\r\n// - EmailEvents\r\n// - SecurityIncident\r\n// - SecurityAlert\r\n// ================================================\r\nlet CanonicalIOC = (iocType:string, iocValue:string) {\r\n    strcat(tolower(trim(\" \", iocType)), \":\", tolower(trim(\" \", iocValue)))\r\n};\r\n// -----------------------------\r\n// Active TI indicators\r\n// -----------------------------\r\nlet ActiveIOCs =\r\n    ThreatIntelIndicators\r\n    | where IsActive == true\r\n      and IsDeleted == false\r\n      and (isnull(ValidUntil) or ValidUntil > now())\r\n    | where isnotempty(SourceSystem)\r\n      and isnotempty(ObservableKey)\r\n      and isnotempty(ObservableValue)\r\n    | extend TIFeed = tostring(SourceSystem)\r\n    | extend IOCTypeRaw = tostring(split(ObservableKey, \":\", 0))\r\n    | extend IOCType = replace_regex(tolower(trim(\" \", IOCTypeRaw)), @\"[\\[\\]\"\"']\", \"\")\r\n    | where IOCType in (\r\n        \"file\",\r\n        \"ipv4-addr\",\r\n        \"ipv6-addr\",\r\n        \"network-traffic\",\r\n        \"domain-name\",\r\n        \"url\",\r\n        \"email-addr\"\r\n    )\r\n    | extend IOCValue = tolower(trim(\" \", tostring(ObservableValue)))\r\n    | extend IOC = CanonicalIOC(IOCType, IOCValue)\r\n    | summarize by TIFeed, IOCType, IOCValue, IOC;\r\n// -----------------------------\r\n// IOC matches in XDR telemetry\r\n// Same logic as Pillar 2 + email address/domain\r\n// -----------------------------\r\nlet TelemetryIOCs =\r\n    union isfuzzy=true\r\n    // Device file hashes\r\n    (\r\n        DeviceFileEvents\r\n        | where isnotempty(SHA256) or isnotempty(SHA1)\r\n        | extend IOCs = pack_array(\r\n            iff(isnotempty(SHA256), CanonicalIOC(\"file\", SHA256), \"\"),\r\n            iff(isnotempty(SHA1), CanonicalIOC(\"file\", SHA1), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | extend TelemetrySource = \"DeviceFileEvents\"\r\n        | project IOC, TelemetrySource\r\n    ),\r\n    // Device network IPs, IPv6, network-traffic, URLs, and domains\r\n    (\r\n        DeviceNetworkEvents\r\n        | where isnotempty(RemoteIP) or isnotempty(RemoteUrl)\r\n        | extend UrlHost = iff(isnotempty(RemoteUrl), tostring(parse_url(RemoteUrl).Host), \"\")\r\n        | extend RemoteIPType = iff(RemoteIP contains \":\", \"ipv6-addr\", \"ipv4-addr\")\r\n        | extend IOCs = pack_array(\r\n            iff(isnotempty(RemoteIP), CanonicalIOC(RemoteIPType, RemoteIP), \"\"),\r\n            iff(isnotempty(RemoteIP), CanonicalIOC(\"network-traffic\", RemoteIP), \"\"),\r\n            iff(isnotempty(RemoteUrl), CanonicalIOC(\"url\", RemoteUrl), \"\"),\r\n            iff(isnotempty(UrlHost), CanonicalIOC(\"domain-name\", UrlHost), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | extend TelemetrySource = \"DeviceNetworkEvents\"\r\n        | project IOC, TelemetrySource\r\n    ),\r\n    // Email URLs and domains\r\n    (\r\n        EmailUrlInfo\r\n        | where isnotempty(Url) or isnotempty(UrlDomain)\r\n        | extend IOCs = pack_array(\r\n            iff(isnotempty(Url), CanonicalIOC(\"url\", Url), \"\"),\r\n            iff(isnotempty(UrlDomain), CanonicalIOC(\"domain-name\", UrlDomain), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | extend TelemetrySource = \"EmailUrlInfo\"\r\n        | project IOC, TelemetrySource\r\n    ),\r\n    // Email attachment hashes\r\n    (\r\n        EmailAttachmentInfo\r\n        | where isnotempty(SHA256) or isnotempty(SHA1)\r\n        | extend IOCs = pack_array(\r\n            iff(isnotempty(SHA256), CanonicalIOC(\"file\", SHA256), \"\"),\r\n            iff(isnotempty(SHA1), CanonicalIOC(\"file\", SHA1), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | extend TelemetrySource = \"EmailAttachmentInfo\"\r\n        | project IOC, TelemetrySource\r\n    ),\r\n    // Email addresses + derived email domains\r\n    (\r\n        EmailEvents\r\n        | extend SenderFromAddress = tostring(column_ifexists(\"SenderFromAddress\", \"\")),\r\n                 SenderMailFromAddress = tostring(column_ifexists(\"SenderMailFromAddress\", \"\")),\r\n                 RecipientEmailAddress = tostring(column_ifexists(\"RecipientEmailAddress\", \"\"))\r\n        | extend EmailCandidates = pack_array(SenderFromAddress, SenderMailFromAddress, RecipientEmailAddress)\r\n        | mv-expand EmailAddress = EmailCandidates to typeof(string)\r\n        | extend EmailAddress = tolower(trim(\" \", EmailAddress))\r\n        | where isnotempty(EmailAddress) and EmailAddress contains \"@\"\r\n        | extend EmailDomain = tostring(split(EmailAddress, \"@\", 1))\r\n        | extend IOCs = pack_array(\r\n            CanonicalIOC(\"email-addr\", EmailAddress),\r\n            iff(isnotempty(EmailDomain), CanonicalIOC(\"domain-name\", EmailDomain), \"\")\r\n        )\r\n        | mv-expand IOC = IOCs to typeof(string)\r\n        | where isnotempty(IOC)\r\n        | extend TelemetrySource = \"EmailEvents\"\r\n        | project IOC, TelemetrySource\r\n    )\r\n    | summarize\r\n        TelemetryHitCount = count(),\r\n        TelemetrySources = make_set(TelemetrySource)\r\n        by IOC;\r\n// -----------------------------\r\n// Closed Sentinel incidents correlated to SecurityAlert.Entities\r\n// -----------------------------\r\nlet IncidentEntityIOCs =\r\n    SecurityIncident\r\n    | where Status == \"Closed\"\r\n    | summarize arg_max(TimeGenerated, *) by IncidentNumber\r\n    | extend IncidentClassification =\r\n        case(\r\n            Classification == \"TruePositive\", \"TruePositive\",\r\n            Classification == \"BenignPositive\", \"BenignPositive\",\r\n            Classification == \"FalsePositive\", \"FalsePositive\",\r\n            Classification == \"Undetermined\", \"Undetermined\",\r\n            isempty(Classification), \"UnclassifiedClosed\",\r\n            tostring(Classification)\r\n        )\r\n    | extend IOCAssessment =\r\n        case(\r\n            IncidentClassification == \"TruePositive\", \"TruePositive\",\r\n            \"NoiseOrNotConfirmedMalicious\"\r\n        )\r\n    | mv-expand AlertId = AlertIds to typeof(string)\r\n    | join kind=inner (\r\n        SecurityAlert\r\n        | where isnotempty(Entities)\r\n        | project\r\n            SystemAlertId,\r\n            AlertName,\r\n            AlertSeverity,\r\n            ProductName,\r\n            ProviderName,\r\n            Entities\r\n    ) on $left.AlertId == $right.SystemAlertId\r\n    | extend EntityArray = todynamic(Entities)\r\n    | mv-expand Entity = EntityArray\r\n    | extend EntityType = tolower(tostring(Entity.Type))\r\n    | extend EntityEmail = case(\r\n        isnotempty(tostring(Entity.Address)), tostring(Entity.Address),\r\n        isnotempty(tostring(Entity.EmailAddress)), tostring(Entity.EmailAddress),\r\n        isnotempty(tostring(Entity.Sender)), tostring(Entity.Sender),\r\n        isnotempty(tostring(Entity.SenderFromAddress)), tostring(Entity.SenderFromAddress),\r\n        isnotempty(tostring(Entity.RecipientEmailAddress)), tostring(Entity.RecipientEmailAddress),\r\n        \"\"\r\n    )\r\n    | extend IOCCandidates = pack_array(\r\n        iff(EntityType == \"ip\", CanonicalIOC(\"ipv4-addr\", tostring(Entity.Address)), \"\"),\r\n        iff(EntityType == \"ip\", CanonicalIOC(\"ipv6-addr\", tostring(Entity.Address)), \"\"),\r\n        iff(EntityType == \"ip\", CanonicalIOC(\"network-traffic\", tostring(Entity.Address)), \"\"),\r\n        iff(EntityType == \"url\", CanonicalIOC(\"url\", tostring(Entity.Url)), \"\"),\r\n        iff(EntityType == \"dns\", CanonicalIOC(\"domain-name\", tostring(Entity.DomainName)), \"\"),\r\n        iff(EntityType == \"filehash\", CanonicalIOC(\"file\", tostring(Entity.Value)), \"\"),\r\n        iff(isnotempty(EntityEmail) and EntityEmail contains \"@\", CanonicalIOC(\"email-addr\", EntityEmail), \"\"),\r\n        iff(isnotempty(EntityEmail) and EntityEmail contains \"@\", CanonicalIOC(\"domain-name\", tostring(split(EntityEmail, \"@\", 1))), \"\")\r\n    )\r\n    | mv-expand IncidentIOC = IOCCandidates to typeof(string)\r\n    | where isnotempty(IncidentIOC)\r\n    | project\r\n        IncidentNumber,\r\n        IncidentTitle = Title,\r\n        IncidentSeverity = Severity,\r\n        IncidentStatus = Status,\r\n        IncidentClassification,\r\n        ClassificationReason,\r\n        ClassificationComment,\r\n        IOCAssessment,\r\n        ClosedTime,\r\n        CreatedTime,\r\n        AlertId,\r\n        AlertName,\r\n        AlertSeverity,\r\n        ProductName,\r\n        ProviderName,\r\n        EntityType,\r\n        IncidentIOC;\r\n// -----------------------------\r\n// Final feed-level scoring\r\n// -----------------------------\r\nActiveIOCs\r\n| join kind=inner TelemetryIOCs on IOC\r\n| mv-expand TelemetrySource = TelemetrySources to typeof(string)\r\n| join kind=leftouter IncidentEntityIOCs on $left.IOC == $right.IncidentIOC\r\n| summarize\r\n    TotalTelemetryMatchedIOCs = dcount(IOC),\r\n    IOCsWithClosedIncidentEvidence = dcountif(IOC, isnotempty(IncidentNumber)),\r\n    TruePositiveIOCs = dcountif(IOC, IOCAssessment == \"TruePositive\"),\r\n    NoiseOrNotConfirmedIOCs = dcountif(IOC, IOCAssessment == \"NoiseOrNotConfirmedMalicious\"),\r\n    ClosedIncidentCount = dcount(IncidentNumber),\r\n    TruePositiveIncidentCount = dcountif(IncidentNumber, IncidentClassification == \"TruePositive\"),\r\n    NoiseOrNotConfirmedIncidentCount = dcountif(\r\n        IncidentNumber,\r\n        isnotempty(IncidentClassification)\r\n        and IncidentClassification != \"TruePositive\"\r\n    ),\r\n    Classifications = make_set(IncidentClassification),\r\n    ExampleIncidents = make_set(strcat(tostring(IncidentNumber), \" - \", tostring(IncidentTitle)), 10),\r\n    TelemetrySources = make_set(TelemetrySource)\r\n    by TIFeed\r\n| extend\r\n    TruePositivePct = round(\r\n        iif(\r\n            TotalTelemetryMatchedIOCs > 0,\r\n            100.0 * todouble(TruePositiveIOCs) / todouble(TotalTelemetryMatchedIOCs),\r\n            0.0\r\n        ),\r\n        2\r\n    ),\r\n    NoisePct = round(\r\n        iif(\r\n            TotalTelemetryMatchedIOCs > 0,\r\n            100.0 * todouble(NoiseOrNotConfirmedIOCs) / todouble(TotalTelemetryMatchedIOCs),\r\n            0.0\r\n        ),\r\n        2\r\n    ),\r\n    IncidentEvidenceCoveragePct = round(\r\n        iif(\r\n            TotalTelemetryMatchedIOCs > 0,\r\n            100.0 * todouble(IOCsWithClosedIncidentEvidence) / todouble(TotalTelemetryMatchedIOCs),\r\n            0.0\r\n        ),\r\n        2\r\n    ),\r\n    SignalVsNoiseScore = TruePositiveIOCs - NoiseOrNotConfirmedIOCs\r\n| order by SignalVsNoiseScore desc, TruePositivePct desc\r\n| project\r\n    Feed = TIFeed,\r\n    TotalTelemetryMatchedIOCs,\r\n    IOCsWithClosedIncidentEvidence,\r\n    TruePositiveIOCs,\r\n    NoiseOrNotConfirmedIOCs,\r\n    TruePositivePct,\r\n    NoisePct,\r\n    IncidentEvidenceCoveragePct,\r\n    ClosedIncidentCount,\r\n    TruePositiveIncidentCount,\r\n    NoiseOrNotConfirmedIncidentCount",
+                            "size": 0,
+                            "queryType": 0,
+                            "resourceType": "microsoft.operationalinsights/workspaces",
+                            "crossComponentResources": [
+                                "{Workspace}"
+                            ],
+                            "timeContextFromParameter": "TimeRange"
+                        },
+                        "name": "query - 1",
+                        "id": "2aa449b1-57fb-4f4c-8219-7a3e59703bee"
+                    }
+                ]
+            },
+            "name": "tifcepillar3",
+            "id": "9b811460-f828-483a-a2f1-6e2c201134bd"
+        },
+        {
+            "type": 12,
+            "content": {
+                "version": "NotebookGroup/1.0",
+                "groupType": "editable",
+                "items": [
+                    {
+                        "type": 1,
+                        "content": {
+                            "json": "## Active IOCs — Measuring Feed Freshness\r\n---\r\n\r\nDetermines whether the feed is regularly updated with current, valid indicators, ensuring ongoing accuracy and freshness."
+                        },
+                        "name": "tifcepillar4-text",
+                        "id": "27c583f3-ddae-459b-b7bd-47bc44dd333a"
+                    },
+                    {
+                        "type": 12,
+                        "content": {
+                            "version": "NotebookGroup/1.0",
+                            "groupType": "editable",
+                            "items": [
+                                {
+                                    "type": 3,
+                                    "content": {
+                                        "version": "KqlItem/1.0",
+                                        "query": "// ================================================\r\n// TIFCE Pillar 4: Feed Freshness\r\n//\r\n// Purpose:\r\n// - Measure how recently each feed added or updated IOCs.\r\n// - Blend recency and IOC addition velocity into a freshness score.\r\n// ================================================\r\nlet FreshnessLookback = 30d;\r\nlet CanonicalIOC = (iocType:string, iocValue:string) {\r\n    strcat(tolower(trim(\" \", iocType)), \":\", tolower(trim(\" \", iocValue)))\r\n};\r\n// -----------------------------\r\n// Build per-feed IOC first/last seen state\r\n// -----------------------------\r\nlet FeedIOCState =\r\n    ThreatIntelIndicators\r\n    | where IsDeleted == false\r\n    | where isnotempty(SourceSystem) and isnotempty(ObservableKey) and isnotempty(ObservableValue)\r\n    | extend TIFeed = tostring(SourceSystem)\r\n    | extend IOCTypeRaw = tostring(split(ObservableKey, \":\", 0))\r\n    | extend IOCType = replace_regex(tolower(trim(\" \", IOCTypeRaw)), @\"[\\[\\]\"\"']\", \"\")\r\n    | extend IOC = CanonicalIOC(IOCType, tostring(ObservableValue))\r\n    | extend CreatedTime = coalesce(\r\n        todatetime(column_ifexists(\"Created\", datetime(null))),\r\n        TimeGenerated\r\n      )\r\n    | extend UpdatedTime = coalesce(\r\n        todatetime(column_ifexists(\"Modified\", datetime(null))),\r\n        todatetime(column_ifexists(\"LastUpdatedTime\", datetime(null))),\r\n        CreatedTime,\r\n        TimeGenerated\r\n      )\r\n    | summarize\r\n        FirstSeen = min(CreatedTime),\r\n        LastSeen  = max(UpdatedTime)\r\n      by TIFeed, IOC;\r\n// -----------------------------\r\n// Aggregate freshness metrics per feed\r\n// -----------------------------\r\nFeedIOCState\r\n| extend IOCAgeDays = datetime_diff(\"day\", now(), FirstSeen)\r\n| summarize\r\n    TotalDistinctIOCs   = count(),\r\n    LastNewIOC          = max(FirstSeen),\r\n    LastFeedActivity    = max(LastSeen),\r\n    NewIOCsLast7d       = countif(FirstSeen > ago(7d)),\r\n    NewIOCsLast30d      = countif(FirstSeen > ago(FreshnessLookback)),\r\n    UpdatedIOCsLast7d   = countif(LastSeen > ago(7d)),\r\n    UpdatedIOCsLast30d  = countif(LastSeen > ago(FreshnessLookback)),\r\n    AvgIOCAgeDays       = round(avg(todouble(IOCAgeDays)), 1),\r\n    P50IOCAgeDays       = toint(percentile(IOCAgeDays, 50))\r\n  by TIFeed\r\n| extend\r\n    DaysSinceLastNewIOC   = datetime_diff(\"day\", now(), LastNewIOC),\r\n    DaysSinceLastActivity = datetime_diff(\"day\", now(), LastFeedActivity)\r\n// Recency favors recently active feeds; velocity favors feeds adding many new IOCs.\r\n| extend\r\n    FreshPctRecent = round(\r\n        iif(TotalDistinctIOCs > 0, 100.0 * todouble(NewIOCsLast30d) / todouble(TotalDistinctIOCs), 0.0),\r\n        2\r\n    ),\r\n    RecencyComponent = case(\r\n        DaysSinceLastActivity <= 1, 100.0,\r\n        DaysSinceLastActivity <= 7, 80.0,\r\n        DaysSinceLastActivity <= 30, 50.0,\r\n        DaysSinceLastActivity <= 90, 20.0,\r\n        0.0\r\n    ),\r\n    VelocityComponent = iif(\r\n        TotalDistinctIOCs > 0,\r\n        100.0 * todouble(NewIOCsLast30d) / todouble(TotalDistinctIOCs),\r\n        0.0\r\n    )\r\n// Weighted score emphasizes recency (60%) over velocity (40%).\r\n| extend\r\n    FreshnessScore = round(0.6 * RecencyComponent + 0.4 * VelocityComponent, 2),\r\n    FreshnessStatus = case(\r\n        DaysSinceLastActivity <= 1, \"Very Fresh (daily activity)\",\r\n        DaysSinceLastActivity <= 7, \"Fresh (weekly activity)\",\r\n        DaysSinceLastActivity <= 30, \"Moderately Fresh\",\r\n        \"Stale / Inactive (>30 days since activity)\"\r\n    )\r\n| order by FreshnessScore desc, DaysSinceLastActivity asc\r\n| project\r\n    Feed = TIFeed,\r\n    TotalDistinctIOCs,\r\n    FreshnessScore,\r\n    NewIOCsLast7d,\r\n    NewIOCsLast30d,\r\n    UpdatedIOCsLast7d,\r\n    UpdatedIOCsLast30d,\r\n    DaysSinceLastNewIOC,\r\n    DaysSinceLastActivity,\r\n    AvgIOCAgeDays,\r\n    P50IOCAgeDays,\r\n    FreshPctRecent,\r\n    LastNewIOC,\r\n    LastFeedActivity,\r\n    FreshnessStatus",
+                                        "size": 0,
+                                        "queryType": 0,
+                                        "resourceType": "microsoft.operationalinsights/workspaces",
+                                        "crossComponentResources": [
+                                            "{Workspace}"
+                                        ],
+                                        "timeContextFromParameter": "TimeRange"
+                                    },
+                                    "name": "query - 0",
+                                    "id": "4d0748d3-bc0b-43d3-8607-54b3ae6045f2"
+                                }
+                            ]
+                        },
+                        "name": "tifcepillar4-datatable",
+                        "styleSettings": {
+                            "margin": "10"
+                        },
+                        "id": "b39d2bcf-98cd-4b8e-9cd1-354555de8b8c"
+                    },
+                    {
+                        "type": 12,
+                        "content": {
+                            "version": "NotebookGroup/1.0",
+                            "groupType": "editable",
+                            "items": [
+                                {
+                                    "type": 3,
+                                    "content": {
+                                        "version": "KqlItem/1.0",
+                                        "query": "// ================================================\r\n// TIFCE Pillar 4: Feed Freshness\r\n//\r\n// Purpose:\r\n// - Provide graph-friendly freshness output by feed.\r\n// ================================================\r\nlet FreshnessLookback = 30d;\r\nlet CanonicalIOC = (iocType:string, iocValue:string) {\r\n    strcat(tolower(trim(\" \", iocType)), \":\", tolower(trim(\" \", iocValue)))\r\n};\r\n// -----------------------------\r\n// Build per-feed IOC first/last seen state\r\n// -----------------------------\r\nlet FeedIOCState =\r\n    ThreatIntelIndicators\r\n    | where IsDeleted == false\r\n    | where isnotempty(SourceSystem) and isnotempty(ObservableKey) and isnotempty(ObservableValue)\r\n    | extend TIFeed = tostring(SourceSystem)\r\n    | extend IOCTypeRaw = tostring(split(ObservableKey, \":\", 0))\r\n    | extend IOCType = replace_regex(tolower(trim(\" \", IOCTypeRaw)), @\"[\\[\\]\"\"']\", \"\")\r\n    | extend IOC = CanonicalIOC(IOCType, tostring(ObservableValue))\r\n    | extend CreatedTime = coalesce(\r\n        todatetime(column_ifexists(\"Created\", datetime(null))),\r\n        TimeGenerated\r\n      )\r\n    | extend UpdatedTime = coalesce(\r\n        todatetime(column_ifexists(\"Modified\", datetime(null))),\r\n        todatetime(column_ifexists(\"LastUpdatedTime\", datetime(null))),\r\n        CreatedTime,\r\n        TimeGenerated\r\n      )\r\n    | summarize\r\n        FirstSeen = min(CreatedTime),\r\n        LastSeen  = max(UpdatedTime)\r\n      by TIFeed, IOC;\r\n// -----------------------------\r\n// Compute freshness score and status\r\n// -----------------------------\r\nFeedIOCState\r\n| extend IOCAgeDays = datetime_diff(\"day\", now(), FirstSeen)\r\n| summarize\r\n    TotalDistinctIOCs   = count(),\r\n    LastNewIOC          = max(FirstSeen),\r\n    LastFeedActivity    = max(LastSeen),\r\n    NewIOCsLast7d       = countif(FirstSeen > ago(7d)),\r\n    NewIOCsLast30d      = countif(FirstSeen > ago(FreshnessLookback)),\r\n    UpdatedIOCsLast7d   = countif(LastSeen > ago(7d)),\r\n    UpdatedIOCsLast30d  = countif(LastSeen > ago(FreshnessLookback)),\r\n    AvgIOCAgeDays       = round(avg(todouble(IOCAgeDays)), 1),\r\n    P50IOCAgeDays       = toint(percentile(IOCAgeDays, 50))\r\n  by TIFeed\r\n| extend\r\n    DaysSinceLastNewIOC   = datetime_diff(\"day\", now(), LastNewIOC),\r\n    DaysSinceLastActivity = datetime_diff(\"day\", now(), LastFeedActivity)\r\n// Recency favors recently active feeds; velocity favors feeds adding many new IOCs.\r\n| extend\r\n    FreshPctRecent = round(\r\n        iif(TotalDistinctIOCs > 0, 100.0 * todouble(NewIOCsLast30d) / todouble(TotalDistinctIOCs), 0.0),\r\n        2\r\n    ),\r\n    RecencyComponent = case(\r\n        DaysSinceLastActivity <= 1, 100.0,\r\n        DaysSinceLastActivity <= 7, 80.0,\r\n        DaysSinceLastActivity <= 30, 50.0,\r\n        DaysSinceLastActivity <= 90, 20.0,\r\n        0.0\r\n    ),\r\n    VelocityComponent = iif(\r\n        TotalDistinctIOCs > 0,\r\n        100.0 * todouble(NewIOCsLast30d) / todouble(TotalDistinctIOCs),\r\n        0.0\r\n    )\r\n// Weighted score emphasizes recency (60%) over velocity (40%).\r\n| extend\r\n    FreshnessScore = round(0.6 * RecencyComponent + 0.4 * VelocityComponent, 2),\r\n    FreshnessStatus = case(\r\n        DaysSinceLastActivity <= 1, \"Very Fresh (daily activity)\",\r\n        DaysSinceLastActivity <= 7, \"Fresh (weekly activity)\",\r\n        DaysSinceLastActivity <= 30, \"Moderately Fresh\",\r\n        \"Stale / Inactive (>30 days since activity)\"\r\n    )\r\n| order by FreshnessScore desc, DaysSinceLastActivity asc\r\n| project Feed = TIFeed, FreshnessStatus",
+                                        "size": 0,
+                                        "queryType": 0,
+                                        "resourceType": "microsoft.operationalinsights/workspaces",
+                                        "visualization": "table",
+                                        "gridSettings": {
+                                            "formatters": [
+                                                {
+                                                    "columnMatch": "FreshnessStatus",
+                                                    "formatter": 18,
+                                                    "formatOptions": {
+                                                        "thresholdsOptions": "colors",
+                                                        "thresholdsGrid": [
+                                                            {
+                                                                "operator": "==",
+                                                                "sourceColumn": "FreshnessStatus",
+                                                                "thresholdValue": "Very Fresh (daily activity)",
+                                                                "representation": "green"
+                                                            },
+                                                            {
+                                                                "operator": "==",
+                                                                "sourceColumn": "FreshnessStatus",
+                                                                "thresholdValue": "Fresh (weekly activity)",
+                                                                "representation": "yellow"
+                                                            },
+                                                            {
+                                                                "operator": "==",
+                                                                "sourceColumn": "FreshnessStatus",
+                                                                "thresholdValue": "Moderately Fresh",
+                                                                "representation": "orange"
+                                                            },
+                                                            {
+                                                                "operator": "==",
+                                                                "sourceColumn": "FreshnessStatus",
+                                                                "thresholdValue": "Stale / Inactive (>30 days since activity)",
+                                                                "representation": "red"
+                                                            },
+                                                            {
+                                                                "operator": "Default",
+                                                                "representation": "lightBlue"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ],
+                                            "hierarchySettings": {}
+                                        },
+                                        "tileSettings": {
+                                            "titleContent": {
+                                                "columnMatch": "FreshnessStatus"
+                                            },
+                                            "sortCriteriaField": "FreshnessStatus",
+                                            "sortOrderField": 1
+                                        },
+                                        "statSettings": {
+                                            "valueField": "FreshnessStatus",
+                                            "tagTextPosition": "bottom"
+                                        },
+                                        "chartSettings": {
+                                            "yAxis": [
+                                                "Feed"
+                                            ],
+                                            "xAxis": "FreshnessStatus",
+                                            "xSettings": {
+                                                "scale": "linear"
+                                            },
+                                            "seriesLabelSettings": [
+                                                {
+                                                    "seriesName": "Very Fresh (daily activity)",
+                                                    "color": "green"
+                                                },
+                                                {
+                                                    "seriesName": "Fresh (weekly activity)",
+                                                    "color": "yellow"
+                                                },
+                                                {
+                                                    "seriesName": "Moderately Fresh",
+                                                    "color": "orange"
+                                                },
+                                                {
+                                                    "seriesName": "Stale / Inactive (>30 days since activity)",
+                                                    "color": "redBright"
+                                                }
+                                            ]
+                                        },
+                                        "textSettings": {
+                                            "style": "bignumber"
+                                        },
+                                        "crossComponentResources": [
+                                            "{Workspace}"
+                                        ],
+                                        "timeContextFromParameter": "TimeRange"
+                                    },
+                                    "name": "query - 0",
+                                    "id": "53f9c783-caf0-4140-84fd-3fa2a136f05e"
+                                }
+                            ]
+                        },
+                        "customWidth": "55",
+                        "name": "tifcepillar4-graphic",
+                        "styleSettings": {
+                            "margin": "10"
+                        },
+                        "id": "5d17b69e-3dc8-4249-a2b6-6d08232c5ab7"
+                    }
+                ]
+            },
+            "name": "tifcepillar4",
+            "id": "5a0b7bcd-08bf-4716-924a-13e3b95bcbb8"
+        }
+    ],
+    "isLocked": true,
+    "fallbackResourceIds": [
+        "{Workspace}"
+    ],
+    "fromTemplateId": "sentinel-UserWorkbook",
+    "context": {
+        "ownerId": "{Workspace}"
+    }
+}

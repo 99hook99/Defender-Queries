@@ -8,10 +8,10 @@ A curated, auto-synced collection of KQL queries for Microsoft Defender and othe
 
 | | |
 |---|---|
-| External queries (source files) | 728 |
+| External queries (source files) | 729 |
 | Custom queries | 1 |
 | Sources | 4 |
-| Last sync | 2026-05-31 10:08:35 UTC |
+| Last sync | 2026-06-01 13:28:33 UTC |
 
 ## Recently Added
 
@@ -36,7 +36,7 @@ Queries are organised by topic, regardless of source. Each topic folder contains
 | `dfir` | DFIR & Incident Response | 13 |
 | `secops` | Security Operations | 17 |
 | `xdr` | Defender XDR | 92 |
-| `various` | Various & Learning | 17 |
+| `various` | Various & Learning | 18 |
 
 ---
 
@@ -45,7 +45,7 @@ Queries are organised by topic, regardless of source. Each topic folder contains
 | Group | Repository | Platform | Format | Files | Description |
 |-------|-----------|----------|--------|-------|-------------|
 | **community** | [Bert-JanP Hunting Queries](https://github.com/Bert-JanP/Hunting-Queries-Detection-Rules) | MDE, Sentinel, DefenderXDR | `markdown` | 311 | Large collection of hunting queries and detection rules across Azure AD, MDE, Sentinel and XDR |
-| **community** | [cyb3rmik3 KQL Threat Hunting](https://github.com/cyb3rmik3/KQL-threat-hunting-queries) | MDE, Sentinel, DefenderXDR, Azure | `markdown` | 89 | Threat hunting and detection queries organized by product: Azure, MDE, Sentinel, Office365, EASM, MDVM |
+| **community** | [cyb3rmik3 KQL Threat Hunting](https://github.com/cyb3rmik3/KQL-threat-hunting-queries) | MDE, Sentinel, DefenderXDR, Azure | `markdown` | 90 | Threat hunting and detection queries organized by product: Azure, MDE, Sentinel, Office365, EASM, MDVM |
 | **community** | [SlimKQL Hunting Queries](https://github.com/SlimKQL/Hunting-Queries-Detection-Rules) | Sentinel, DefenderXDR, Azure, ADX | `kql` | 320 | Standalone KQL files organized by product: Azure, DefenderXDR, Sentinel, ADX — includes IOC lists |
 | **community** | [KQL Cafe – KustoCon](https://github.com/KQLCafe/kustocon) | Sentinel, MDE | `kql` | 8 | KQL Cafe conference queries and demos |
 
